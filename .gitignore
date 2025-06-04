@@ -1,0 +1,33 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# dotenv environment variables
+.env
+
+# VSCode folder
+.vscode/
+
+# PyCharm folder
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# FAISS vector database (rigenerabile o troppo grande)
+vectordb/
+
+# Log files
+*.log
+
+# Miscellaneous
+*.sqlite3
