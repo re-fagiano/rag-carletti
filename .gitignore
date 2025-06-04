@@ -31,4 +31,5 @@ vectordb/
 
 # Miscellaneous
 *.sqlite3
+
 .env
