@@ -9,34 +9,34 @@ from langchain_community.chat_models import ChatOpenAI
 from dotenv import load_dotenv
 import os
 
-load_dotenv()  # in produzione Render caricherà OPENAI_API_KEY da env vars
+# Carica la variabile OPENAI_API_KEY dal file .env (o dalle env vars di Render)
+load_dotenv()
 
 app = FastAPI()
 
-# (Opzionale) Abilita CORS se frontend e backend stanno su domini diversi:
+# Se servirai il front-end da un dominio diverso, abilita CORS; altrimenti puoi ometterlo
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # o ["https://tuo-dominio-wordpress.it"]
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_origins=["*"],  # in produzione sostituisci con il dominio del tuo WordPress
+    allow_methods=["GET","POST","OPTIONS"],
     allow_headers=["*"],
 )
 
-# Monta static/ su /static
+# Monta la cartella static/ sotto /static
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# GET / → serve index.html
+# Serve index.html sulla root
 @app.get("/")
 def serve_index():
     return FileResponse("static/index.html")
 
-# 1) Usa OpenAIEmbeddings (richiede che OPENAI_API_KEY sia impostato in env)
-openai_embedding = OpenAIEmbeddings()
+# **Qui usiamo OpenAIEmbeddings invece di HuggingFaceEmbeddings**
+openai_embedding = OpenAIEmbeddings()  
 db = FAISS.load_local("vectordb/", openai_embedding, allow_dangerous_deserialization=True)
 retriever = db.as_retriever()
-
-# 2) Usa il LLM di OpenAI (ChatOpenAI) via API
+# Usa un modello GPT via API (puoi mettere "gpt-3.5-turbo" se non hai GPT-4)
 rag = RetrievalQA.from_chain_type(
-    llm=ChatOpenAI(model_name="gpt-3.5-turbo"),  # o "gpt-4" se hai accesso
+    llm=ChatOpenAI(model_name="gpt-3.5-turbo"),
     retriever=retriever
 )
 
@@ -47,6 +47,5 @@ async def ask_question(request: Request):
     try:
         risposta = rag.run(query)
     except Exception as e:
-        risposta = "❌ Errore interno: " + str(e)
+        risposta = f"❌ Errore interno: {e}"
     return {"risposta": risposta}
-
