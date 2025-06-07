@@ -7,7 +7,7 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
 
 # il modello chat
-from langchain_community.chat_models import ChatOpenAI
+angchain.chains.chat_models import ChatOpenAI
 
 # **qui** import corretto
 from langchain.chains import RetrievalQA
