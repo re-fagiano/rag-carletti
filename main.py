@@ -1,47 +1,71 @@
-import logging, traceback
+import logging
+import traceback
+import os
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 
-# usa gli embedding e FAISS dal core (o da community, va bene)
-from langchain.embeddings import HuggingFaceEmbeddings
+# Usiamo solo OpenAIEmbeddings per evitare OOM
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.vectorstores import FAISS
-
-# il modello chat
-angchain.chains.chat_models import ChatOpenAI
-
-# **qui** import corretto
 from langchain.chains import RetrievalQA
 
-# --- resto identico ---
+# Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# Caricamento FastAPI e file statici
+app = FastAPI()t("/", StaticFiles(directory="static", html=True), name="static")
+
+# Leggi chiave API da variabili d'ambiente
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if not OPENAI_API_KEY:
+    raise Exception("Devi impostare la variabile d'ambiente OPENAI_API_KEY")
 
 try:
-    hf_embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    db = FAISS.load_local("vectordb/", hf_embedding, allow_dangerous_deserialization=True)
+    # Inizializza embeddings OpenAI (remote)
+    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+
+    # Carica il database FAISS locale, usando gli embeddings OpenAI
+    db = FAISS.load_local(
+        "vectordb/", embeddings, allow_dangerous_deserialization=True
+    )
     retriever = db.as_retriever()
+
+    # Inizializza il modello LLM ChatOpenAI
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo", openai_api_key=OPENAI_API_KEY)
+
+    # Costruisci la catena RetrievalQA
     rag = RetrievalQA.from_chain_type(
-        llm=ChatOpenAI(model_name="gpt-3.5-turbo"),
+        llm=llm,
+        chain_type="stuff",
         retriever=retriever
     )
-    logger.info("🔌 FAISS Retriever caricato correttamente.")
+    logger.info("🔌 FAISS Retriever caricato correttamente con OpenAIEmbeddings.")
 except Exception:
-    logger.exception("❌ Errore durante il caricamento di FAISS:")
+    logger.exception("❌ Errore durante il caricamento di FAISS o OpenAI Embeddings:")
     raise
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 @app.post("/ask")
 async def ask_question(request: Request):
     try:
         payload = await request.json()
         query = payload.get("query", "").strip()
+        if not query:
+            raise HTTPException(status_code=422, detail="Inserisci il campo 'query' nel JSON")
         logger.info(f"▶️ Ricevuta query: {query!r}")
         risposta = rag.run(query)
         logger.info(f"✅ Risposta: {risposta!r}")
         return {"risposta": risposta}
+    except HTTPException:
+        # rilancia HTTPException per status 422
+        raise
     except Exception as e:
         tb = traceback.format_exc()
         logger.error(f"❌ Errore interno durante /ask:\n{tb}")
-        raise HTTPException(500, detail=f"Internal error: {e}")
+        raise HTTPException(status_code=500, detail="Internal error, controlla i log")
+
+app.mounor, controlla i log")
