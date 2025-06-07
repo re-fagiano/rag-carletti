@@ -1,22 +1,24 @@
-import logging
-import traceback
+import logging, traceback
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_community.chat_models import ChatOpenAI
-from langchain_community.chains import RetrievalQA
 
-# 1) Logging
+# usa gli embedding e FAISS dal core (o da community, va bene)
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import FAISS
+
+# il modello chat
+from langchain_community.chat_models import ChatOpenAI
+
+# **qui** import corretto
+from langchain.chains import RetrievalQA
+
+# --- resto identico ---
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
-
-# 2) Monta i tuoi file statici (la UI del bot)
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
-# 3) Caricamento FAISS al boot (assicurati di aver committato vectordb/)
 try:
     hf_embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     db = FAISS.load_local("vectordb/", hf_embedding, allow_dangerous_deserialization=True)
@@ -26,7 +28,7 @@ try:
         retriever=retriever
     )
     logger.info("🔌 FAISS Retriever caricato correttamente.")
-except Exception as e:
+except Exception:
     logger.exception("❌ Errore durante il caricamento di FAISS:")
     raise
 
@@ -42,9 +44,4 @@ async def ask_question(request: Request):
     except Exception as e:
         tb = traceback.format_exc()
         logger.error(f"❌ Errore interno durante /ask:\n{tb}")
-        # restituisco al client l’eccezione per debugging
         raise HTTPException(500, detail=f"Internal error: {e}")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
