@@ -2,6 +2,7 @@ import logging
 import traceback
 import os
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 # Usiamo solo OpenAIEmbeddings per evitare OOM
@@ -13,9 +14,16 @@ from langchain.chains import RetrievalQA
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-# Caricamento FastAPI e file statici
+# Caricamento FastAPI
 app = FastAPI()
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+
+# Endpoint principale per la pagina web (index.html)
+@app.get("/")
+async def root():
+    return FileResponse("static/index.html")
+
+# Montiamo i file statici (JS, CSS, assets) su /static
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Leggi chiave API da variabili d'ambiente
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -62,7 +70,6 @@ async def ask_question(request: Request):
         logger.info(f"✅ Risposta: {risposta!r}")
         return {"risposta": risposta}
     except HTTPException:
-        # rilancia HTTPException per status 422
         raise
     except Exception:
         tb = traceback.format_exc()
