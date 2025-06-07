@@ -1,3 +1,4 @@
+
 import logging
 import traceback
 import os
@@ -14,7 +15,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 # Caricamento FastAPI e file statici
-app = FastAPI()t("/", StaticFiles(directory="static", html=True), name="static")
+app = FastAPI()
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 # Leggi chiave API da variabili d'ambiente
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -63,9 +65,7 @@ async def ask_question(request: Request):
     except HTTPException:
         # rilancia HTTPException per status 422
         raise
-    except Exception as e:
+    except Exception:
         tb = traceback.format_exc()
         logger.error(f"❌ Errore interno durante /ask:\n{tb}")
         raise HTTPException(status_code=500, detail="Internal error, controlla i log")
-
-app.mounor, controlla i log")
