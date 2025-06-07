@@ -23,9 +23,6 @@ venv.bak/
 .DS_Store
 Thumbs.db
 
-# FAISS vector database (rigenerabile o troppo grande)
-vectordb/
-
 # Log files
 *.log
 
