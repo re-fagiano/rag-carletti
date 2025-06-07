@@ -2,7 +2,7 @@ import logging
 import traceback
 import os
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 # Usiamo solo OpenAIEmbeddings per evitare OOM
@@ -30,15 +30,21 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise Exception("Devi impostare la variabile d'ambiente OPENAI_API_KEY")
 
+# Verifica la presenza dell'indice FAISS
+VECTORDB_PATH = "vectordb/"
+if not os.path.isdir(VECTORDB_PATH):
+    raise Exception(f"Directory '{VECTORDB_PATH}' non trovata. Assicurati di committare l'indice FAISS prima del deploy.")
+
 # Inizializza la pipeline RAG
 try:
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
-    db = FAISS.load_local("vectordb/", embeddings, allow_dangerous_deserialization=True)
+    db = FAISS.load_local(VECTORDB_PATH, embeddings, allow_dangerous_deserialization=True)
     retriever = db.as_retriever()
     llm = ChatOpenAI(model_name="gpt-3.5-turbo", openai_api_key=OPENAI_API_KEY)
     rag = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever)
     logger.info("🔌 FAISS Retriever caricato correttamente con OpenAIEmbeddings.")
-except Exception:
+    logger.info(f"🔢 Dimensione embedding: {len(embeddings.embed_query('test'))}")
+except Exception as e:
     logger.exception("❌ Errore durante il caricamento di FAISS o OpenAI Embeddings:")
     raise
 
@@ -56,7 +62,15 @@ async def ask_question(request: Request):
         if not query:
             raise HTTPException(status_code=422, detail="Inserisci il campo 'query' nel JSON")
         logger.info(f"▶️ Ricevuta query: {query!r}")
-        risposta = rag.run(query)
+        # Esegui la RAG
+        try:
+            risposta = rag.run(query)
+        except AssertionError as ae:
+            # Mismatch dimensionale o indice corrotto
+            msg = ("Indice FAISS non compatibile: dimensione embedding mismatch. "
+                   "Ricostruisci 'vectordb/' con OpenAIEmbeddings.")
+            logger.error(f"❌ {msg}: {ae}")
+            return JSONResponse(status_code=500, content={"error": msg})
         logger.info(f"✅ Risposta: {risposta!r}")
         return {"risposta": risposta}
     except HTTPException:
@@ -64,7 +78,4 @@ async def ask_question(request: Request):
     except Exception:
         tb = traceback.format_exc()
         logger.error(f"❌ Errore interno durante /ask:\n{tb}")
-        from fastapi.responses import JSONResponse
-        
-        # Temporaneo: ritorna stacktrace nella risposta JSON
         return JSONResponse(status_code=500, content={"error": tb})
