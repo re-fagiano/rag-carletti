@@ -64,4 +64,7 @@ async def ask_question(request: Request):
     except Exception:
         tb = traceback.format_exc()
         logger.error(f"❌ Errore interno durante /ask:\n{tb}")
-        raise HTTPException(status_code=500, detail="Internal error, controlla i log")
+        from fastapi.responses import JSONResponse
+        
+        # Temporaneo: ritorna stacktrace nella risposta JSON
+        return JSONResponse(status_code=500, content={"error": tb})
