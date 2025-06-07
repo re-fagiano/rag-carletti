@@ -14,15 +14,15 @@ from langchain.chains import RetrievalQA
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
-# Caricamento FastAPI
+# Inizializza FastAPI
 app = FastAPI()
 
-# Endpoint principale per la pagina web (index.html)
+# Servi la pagina HTML principale
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
 
-# Montiamo i file statici (JS, CSS, assets) su /static
+# Monta i file statici su /static (JS, CSS, assets)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Leggi chiave API da variabili d'ambiente
@@ -30,34 +30,24 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise Exception("Devi impostare la variabile d'ambiente OPENAI_API_KEY")
 
+# Inizializza la pipeline RAG
 try:
-    # Inizializza embeddings OpenAI (remote)
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
-
-    # Carica il database FAISS locale, usando gli embeddings OpenAI
-    db = FAISS.load_local(
-        "vectordb/", embeddings, allow_dangerous_deserialization=True
-    )
+    db = FAISS.load_local("vectordb/", embeddings, allow_dangerous_deserialization=True)
     retriever = db.as_retriever()
-
-    # Inizializza il modello LLM ChatOpenAI
     llm = ChatOpenAI(model_name="gpt-3.5-turbo", openai_api_key=OPENAI_API_KEY)
-
-    # Costruisci la catena RetrievalQA
-    rag = RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type="stuff",
-        retriever=retriever
-    )
+    rag = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever)
     logger.info("🔌 FAISS Retriever caricato correttamente con OpenAIEmbeddings.")
 except Exception:
     logger.exception("❌ Errore durante il caricamento di FAISS o OpenAI Embeddings:")
     raise
 
+# Endpoint salute
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
+# Endpoint chat
 @app.post("/ask")
 async def ask_question(request: Request):
     try:
