@@ -1,0 +1,17 @@
+LAVATRICE NON SCARICA.
+1 testare la macchina e sentire i rumori per capire se la pompa viene alimentata, se no potrebbe essere serratura\blocco bambini\scheda elettronica
+
+2 se fa rumore ma l'acqua non viene scaricata, staccare tubo di scarico da eventuali raccordi a muro, e far scaricare in un secchio\lavandino, attenzione a tenere il tubo alto per non far uscire acqua causa vasi comunicanti
+
+3 se scarica liberamente nel lavandino\secchio la colpa è da ascrivere allo scarico a muro. pulibile a parte o contattare idraulico
+
+4 se la lavatrice continua a non scaricare, inclinare all'indietro la lavatrice posizionare una bacinella sotto il filtro, aprire girando in senso antiorario il tappo filtro, una volta finita acqua in uscita ispezionare la cavità assicurandosi che la ventola\girante sul fondo sia completamente libera e non ostruita\bloccata da corpi esterni quali mollette monete pezzi di plastica acchiappacolore lacci o elastici.
+
+5 se non dovesse uscire acqua una volta estratto il filtro,  il manicotto di scarico che va dalla vasca al corpo pompa è probabilmente ostruito - in questo caso ci sono due possibili vie per intervenire: 1 con la lavatrice inclinata operando da sotto la stessa 2 aprendo il pannello sul retro. il lavoro da eseguire è rimuovere le due fascette (a vite o a molla) prestando attenzione all'acqua che uscirà dalla vasca e ispezionare il manicotto liberandolo dai corpi esterni, dopo aver rimosso corpi esterni rimontare e provare.
+
+6 se la pompa fa rumore e il manicotto è libero e non è ostruita sarà certamente da cambiare
+
+7 se la pompa non fa rumori va verificata la corretta funzionalità del componente: 1 testare se alimentata, staccare la corrente con il multimetro\tester su posizione volt (corrente alternata la V con ondina di fianco) inserire i due puntali sui due contatti della pompa, riattaccare corrente, mandare un programma di scarico, se funzionante deve visualizzare 220 v (tra 210 a 230 è normale) se arrica correttamente passare al prossimo punto
+
+8 controllo avvolgimenti pompa magnetica: 1 rimuovere corrente 2 staccare i due faston che alimentano la pompa 3 con multimetro\tester su prova diodi\continuità posizionare i puntali del tester sui due contatti della pompa, il tester dovrà suonare o visualizzare numeri, se OL\nessuna rilevazione la pompa è interrotta e va sostituita
+

@@ -1,0 +1,5 @@
+LA LAVATRICE FA SALTARE LA LUCE
+
+1 testare la dispersione: 1.1 staccare la presa elettrica con il multimetro in modalità ohm al massimo della scala, posizionare 1 puntale del testetr sulla linea\neutro e 1 sulla terra (shuko: 1 su uno dei due rebbi 1 sulle mollette laterali connesse con la terra - prese italiana la terra è al centro dei tre rebbi), se il tester da un segnale fisso es 2M c'è dispersione nel circuito
+1.2 se c'è una dispersione andremmo inizialmente a ricercarla nella resistenza (ubicata nella vasca anteriore sotto la gomma oblò, per testarla inclinare sul retro la lavatrice ed operare da sotto la macchina) staccare i due faston di alimentazione e la terra, dopo mettere un puntale del tester su uno dei pin da dove abbiamo staccato i faston, e 1 sulla terra, se il tester segna la dispersione quella è il problema e va sostituita, per sicurezza ricontrollare la dispersione dalla presa , se non c'è piu dispersione la sostituzione della resistenza conclude la riparazione
+
