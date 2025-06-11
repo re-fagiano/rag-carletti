@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.vectorstores import FAISS
 from langchain.chains import RetrievalQA
+from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
 # Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -41,10 +42,33 @@ try:
     db = FAISS.load_local(VECTORDB_PATH, embeddings, allow_dangerous_deserialization=True)
     retriever = db.as_retriever()
     llm = ChatOpenAI(model_name="gpt-3.5-turbo", openai_api_key=OPENAI_API_KEY)
-    rag = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever)
-    logger.info("🔌 FAISS Retriever caricato correttamente con OpenAIEmbeddings.")
+
+    # Definisci il messaggio di sistema con le istruzioni desiderate
+    system_instruction = """
+Segui queste istruzioni per interazioni:
+1. Chiedi quali problemi hai con la tua lavatrice Bosch WAN28282GB.
+2. Chiedi all'utente se ha competenze pregresse nella riparazione lavatrici o se è un amatoriale - in base alla risposta cambia ritmo e quantità di nozioni:
+   - Principianti: step passo a passo con istruzioni più corte e chiedi se servono dettagli su strumenti (es. tester).
+   - Esperti: guida più rapidamente alle soluzioni.
+3. Utilizza codici, foto, esplosi come immagini per guidare gli utenti verso una risoluzione precisa.
+"""
+
+    # Costruisci il prompt chat
+    prompt = ChatPromptTemplate.from_messages([
+        SystemMessagePromptTemplate.from_template(system_instruction),
+        HumanMessagePromptTemplate.from_template("{query}")
+    ])
+
+    # Usa la catena di tipo chat con le istruzioni di sistema
+    rag = RetrievalQA.from_chain_type(
+        llm=llm,
+        chain_type="chat",
+        retriever=retriever,
+        chain_type_kwargs={"prompt": prompt}
+    )
+    logger.info("🔌 FAISS Retriever caricato correttamente con OpenAIEmbeddings e istruzioni di sistema.")
     logger.info(f"🔢 Dimensione embedding: {len(embeddings.embed_query('test'))}")
-except Exception as e:
+except Exception:
     logger.exception("❌ Errore durante il caricamento di FAISS o OpenAI Embeddings:")
     raise
 

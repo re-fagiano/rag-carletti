@@ -1,8 +1,0 @@
-diagramma logico funzionamento lavatrice:
-
-1 selezionato il programma, avviare
-2 la serratura si chiude con un tac
-3 parte la pompa di scarico
-4 il motore incomincia a pesare\sistemare il carico
-5 elettrovalvole alimentate la lavatrice carica acqua
-il programma è inizializzato
