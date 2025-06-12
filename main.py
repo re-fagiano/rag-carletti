@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 # Usiamo solo OpenAIEmbeddings per evitare OOM
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS  # import aggiornato
 from langchain.chains import RetrievalQA
 from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
@@ -68,9 +68,8 @@ Segui queste istruzioni per interazioni:
         retriever=retriever,
         chain_type_kwargs={
             "prompt": prompt,
-            # specifica i nomi delle variabili per la catena stuff
-            "document_variable_name": "context",
-            "question_variable_name": "query"
+            # specifica il nome della variabile che conterrà i documenti
+            "document_variable_name": "context"
         }
     )
     logger.info("🔌 FAISS Retriever caricato correttamente con OpenAIEmbeddings e istruzioni di sistema.")
