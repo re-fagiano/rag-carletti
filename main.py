@@ -59,10 +59,10 @@ Segui queste istruzioni per interazioni:
         HumanMessagePromptTemplate.from_template("{query}")
     ])
 
-    # Usa la catena di tipo chat con le istruzioni di sistema
+    # Usa la catena di tipo "stuff" con le istruzioni di sistema
     rag = RetrievalQA.from_chain_type(
         llm=llm,
-        chain_type="chat",
+        chain_type="stuff",
         retriever=retriever,
         chain_type_kwargs={"prompt": prompt}
     )
