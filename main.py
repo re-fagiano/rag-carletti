@@ -53,10 +53,12 @@ Segui queste istruzioni per interazioni:
 3. Utilizza codici, foto, esplosi come immagini per guidare gli utenti verso una risoluzione precisa.
 """
 
-    # Costruisci il prompt chat
+    # Costruisci il prompt chat includendo sia contesto che domanda
     prompt = ChatPromptTemplate.from_messages([
         SystemMessagePromptTemplate.from_template(system_instruction),
-        HumanMessagePromptTemplate.from_template("{query}")
+        HumanMessagePromptTemplate.from_template(
+            "Contesto:\n{context}\n\nDomanda: {query}"
+        )
     ])
 
     # Usa la catena di tipo "stuff" con le istruzioni di sistema
@@ -64,7 +66,12 @@ Segui queste istruzioni per interazioni:
         llm=llm,
         chain_type="stuff",
         retriever=retriever,
-        chain_type_kwargs={"prompt": prompt}
+        chain_type_kwargs={
+            "prompt": prompt,
+            # specifica i nomi delle variabili per la catena stuff
+            "document_variable_name": "context",
+            "question_variable_name": "query"
+        }
     )
     logger.info("🔌 FAISS Retriever caricato correttamente con OpenAIEmbeddings e istruzioni di sistema.")
     logger.info(f"🔢 Dimensione embedding: {len(embeddings.embed_query('test'))}")
