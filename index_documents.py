@@ -17,7 +17,7 @@ if not OPENAI_API_KEY:
     raise Exception("Devi impostare la variabile d'ambiente OPENAI_API_KEY per usare OpenAIEmbeddings.")
 
 # 1) Carica tutti i file .txt in documenti/ (ricorsivamente)
-txt_loader = DirectoryLoader("documenti", glob="**/*.txt", loader_cls=TextLoader)
+txt_loader = DirectoryLoader("docs", glob="**/*.txt", loader_cls=TextLoader)
 
 # 2) Se vuoi includere anche i PDF, decommenta le righe seguenti:
 # pdf_loader = DirectoryLoader("documenti", glob="**/*.pdf", loader_cls=PDFMinerLoader)

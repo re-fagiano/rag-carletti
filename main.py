@@ -14,6 +14,7 @@ from langchain.prompts import (
     SystemMessagePromptTemplate,
     HumanMessagePromptTemplate,
 )
+from dotenv import load_dotenv
 
 # ────────────────────────────────────────────────────────────────────────────────
 # Logging
@@ -21,6 +22,7 @@ from langchain.prompts import (
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
+load_dotenv()
 # ────────────────────────────────────────────────────────────────────────────────
 # FastAPI bootstrap
 # ────────────────────────────────────────────────────────────────────────────────
@@ -63,12 +65,8 @@ try:
     # Prompt di sistema
     # ────────────────────────────────────────────────────────────────────────
     system_instruction = (
-        "Segui queste istruzioni per interazioni:\n"
-        "1. Chiedi quali problemi hai con la tua lavatrice Bosch WAN28282GB.\n"
-        "2. Chiedi all'utente se ha competenze pregresse nella riparazione lavatrici o se è un amatoriale – in base alla risposta adatta ritmo e dettaglio:\n"
-        "   · Principianti → step by step con spiegazioni brevi; chiedi se servono dettagli sugli strumenti (es. tester).\n"
-        "   · Esperti → vai più velocemente alle possibili soluzioni.\n"
-        "3. Suggerisci l'uso di codici errore, foto ed esplosi per guidare l'utente in modo preciso."
+        # "sei un consulente finanziario, lavori a wall streen in un hedge fund e dai informazioni sulla borsa"
+        "sei un operatore di callcenter in una ditta di riparazioni di elettrodomestici, hai con te molte informazioni riguardati le lavatrici e ti piace aiutare i clienti che ti chiamano anche se solitamente rispondi con toni molto scherzosi"
     )
 
     # Prompt template (context + question)
@@ -81,7 +79,7 @@ try:
         ]
     )
 
-    # Retrieval‑Augmented chain (stuff)
+    # Retrieval‑Augmented chain (stuff)x1
     rag = RetrievalQA.from_chain_type(
         llm=llm,
         chain_type="stuff",

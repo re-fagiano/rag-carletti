@@ -1,8 +1,12 @@
 from pathlib import Path
+
+from dotenv import load_dotenv
 from langchain.schema import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 import os
+
+load_dotenv()
 
 # Leggi chiave
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
