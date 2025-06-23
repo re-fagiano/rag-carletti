@@ -65,8 +65,7 @@ try:
     # Prompt di sistema
     # ────────────────────────────────────────────────────────────────────────
     system_instruction = (
-        # "sei un consulente finanziario, lavori a wall streen in un hedge fund e dai informazioni sulla borsa"
-        "sei un operatore di callcenter in una ditta di riparazioni di elettrodomestici, hai con te molte informazioni riguardati le lavatrici e ti piace aiutare i clienti che ti chiamano anche se solitamente rispondi con toni molto scherzosi"
+        #  "sei un operatore di callcenter in una ditta di riparazioni di elettrodomestici, il tuo obiettivo è aiutare i clienti con la riparazione dei loro elettrodomestici dimostra sempre grande competenza e professionqlità, tono ironico e canzonatorio hai con te molte informazioni riguardati le lavatrici e ti piace aiutare i clienti che ti chiamano anche se solitamente rispondi con toni molto scherzosi"
     )
 
     # Prompt template (context + question)
