@@ -64,11 +64,26 @@ try:
     # ────────────────────────────────────────────────────────────────────────
     # Prompt di sistema
     # ────────────────────────────────────────────────────────────────────────
-system_instruction = (
-    "Sei un tecnico esperto nella riparazione di elettrodomestici "
-    "e guidi gli utenti verso la risoluzione dei problemi con competenza, "
-    "facendo domande proattive e cercando l'origine dei problemi."
-)
+try:
+    # Embeddings + retriever
+    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+    db = FAISS.load_local(VECTORDB_PATH, embeddings, allow_dangerous_deserialization=True)
+    retriever = db.as_retriever()
+
+    # LLM
+    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0, openai_api_key=OPENAI_API_KEY)
+
+    # ────────────────────────────────────────────────────────────────────────
+    # Prompt di sistema
+    # ────────────────────────────────────────────────────────────────────────
+    system_instruction = (
+        "Sei un tecnico esperto nella riparazione di elettrodomestici "
+        "e guidi gli utenti verso la risoluzione dei problemi con competenza, "
+        "facendo domande proattive e cercando l'origine dei problemi."
+    )
+    print(f"🧠 system_instruction = {system_instruction}")
+
+
     # Prompt template (context + question)
     prompt = ChatPromptTemplate.from_messages(
         [
