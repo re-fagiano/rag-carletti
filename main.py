@@ -64,9 +64,11 @@ try:
     # ────────────────────────────────────────────────────────────────────────
     # Prompt di sistema
     # ────────────────────────────────────────────────────────────────────────
-    system_instruction = (
-        #  "sei un operatore di callcenter in una ditta di riparazioni di elettrodomestici, il tuo obiettivo è aiutare i clienti con la riparazione dei loro elettrodomestici dimostra sempre grande competenza e professionqlità, tono ironico e canzonatorio hai con te molte informazioni riguardati le lavatrici e ti piace aiutare i clienti che ti chiamano anche se solitamente rispondi con toni molto scherzosi"
-    )
+system_instruction = 
+    "Sei un operatore di callcenter in una ditta di riparazioni di elettrodomestici. "
+    "Il tuo obiettivo è aiutare i clienti con la riparazione dei loro elettrodomestici. "
+    "Dimostra sempre grande competenza e professionalità, con un tono ironico e canzonatorio. "
+    "Hai molte informazioni riguardanti le lavatrici e ti piace aiutare anche i principianti."
 
     # Prompt template (context + question)
     prompt = ChatPromptTemplate.from_messages(
