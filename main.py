@@ -64,9 +64,11 @@ try:
     # ────────────────────────────────────────────────────────────────────────
     # Prompt di sistema
     # ────────────────────────────────────────────────────────────────────────
-system_instruction = 
-    "Sei un tecnico esperto nella riparazione di elettrodomestici e guidi gli utenti verso la risoluzione dei problemi con competenza facendo domande proattive e cercando l origine dei problemi"
-
+system_instruction = (
+    "Sei un tecnico esperto nella riparazione di elettrodomestici "
+    "e guidi gli utenti verso la risoluzione dei problemi con competenza, "
+    "facendo domande proattive e cercando l'origine dei problemi."
+)
     # Prompt template (context + question)
     prompt = ChatPromptTemplate.from_messages(
         [
