@@ -36,6 +36,16 @@
       background: #e2e2e2;
       color: #000;
     }
+    .message.bot img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-top: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.tooltip {
+  font-weight: bold;
+  color: #444;
+}
     #input-container {
       display: flex;
       border-top: 1px solid #ccc;
@@ -64,6 +74,51 @@
       opacity: 0.6;
       cursor: default;
     }
+    .tooltip {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+  border-bottom: 1px dotted #555;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 200px;
+  background-color: #222;
+  color: #fff;
+  text-align: left;
+  padding: 8px;
+  border-radius: 5px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.tooltip .tooltiptext::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #222 transparent transparent transparent;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+  opacity: 1;
+}
+
+.info-icon {
+  font-size: 0.9em;
+  margin-left: 4px;
+  color: #555;
+}
   </style>
 </head>
 <body>
@@ -90,13 +145,13 @@
       function addMessage(text, sender) {
         const msg = document.createElement('div');
         msg.classList.add('message', sender);
-        msg.textContent = text;
+        msg.innerHTML = text;
         chatContainer.appendChild(msg);
         chatContainer.scrollTop = chatContainer.scrollHeight;
       }
 
       // Messaggio di benvenuto
-      addMessage('👋 Ciao! Chiedimi qualcosa.', 'bot');
+      addMessage('Buongiorno, come posso aiutarla?.', 'bot');
       promptInput.focus();
 
       // Quando clicchi "Invia"
