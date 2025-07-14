@@ -111,6 +111,15 @@
       color: var(--fg);
     }
 
+    #agent-select {
+      padding: 0.75rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: var(--bg);
+      color: var(--fg);
+    }
+
     #send-btn {
       padding: 0.75rem 1rem;
       font-size: 1rem;
@@ -136,25 +145,7 @@
       background-color: var(--accent);
       color: #fff;
       text-align: left;
-      padding: 8px;
-      border-radius: 5px;
-      position: absolute;
-      z-index: 1;
-      bottom: 125%;
-      left: 50%;
-      transform: translateX(-50%);
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-
-    .tooltip .tooltiptext::after {
-      content: "";
-      position: absolute;
-      top: 100%;
-      left: 50%;
-      margin-left: -5px;
-      border-width: 5px;
-      border-style: solid;
+@@ -158,87 +167,95 @@
       border-color: var(--accent) transparent transparent transparent;
     }
 
@@ -180,6 +171,13 @@
 
   <div id="input-container">
     <input type="text" id="prompt" placeholder="Scrivi qui la tua domanda..." />
+    <select id="agent-select">
+      <option value="Gustav">Gustav</option>
+      <option value="Yomo">Yomo</option>
+      <option value="Jenna">Jenna</option>
+      <option value="Liutprando">Liutprando</option>
+      <option value="Manutentore interno">Manutentore interno</option>
+    </select>
     <button id="send-btn">Invia</button>
   </div>
 
@@ -192,6 +190,7 @@
     window.addEventListener('load', () => {
       const chatContainer = document.getElementById('chat-container');
       const promptInput = document.getElementById('prompt');
+      const agentSelect = document.getElementById('agent-select');
       const sendBtn = document.getElementById('send-btn');
 
       function addMessage(text, sender) {
@@ -217,6 +216,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query: userText })
+          body: JSON.stringify({ query: userText, agent: agentSelect.value })
         })
         .then(resp => resp.json())
         .then(data => {
