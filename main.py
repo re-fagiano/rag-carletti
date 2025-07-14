@@ -70,7 +70,7 @@ try:
         chain_type="stuff",
         retriever=retriever,
         chain_type_kwargs={"prompt": prompt, "document_variable_name": "context"},
-    )
+   )
     logger.info("✅ Pipeline RAG inizializzata correttamente.")
 except Exception:
     logger.exception("❌ Errore durante l'inizializzazione della pipeline RAG:")
@@ -94,6 +94,15 @@ TOOLTIPS = {
     "programma": "Ciclo di lavaggio o asciugatura selezionato dall’utente.",
     "inverter": "Tipo di motore elettronico a basso consumo."
 }
+
+# Elenco degli agenti disponibili nel progetto
+AGENTS = [
+    {"id": 1, "nome": "Gustav", "descrizione": "Riparatore tecnico esperto di elettrodomestici"},
+    {"id": 2, "nome": "Yomo", "descrizione": "Validatore e cercatore di informazioni"},
+    {"id": 3, "nome": "Jenna", "descrizione": "Esperto di utilizzo degli elettrodomestici"},
+    {"id": 4, "nome": "Liutprando", "descrizione": "Comico venditore esperto di elettrodomestici"},
+    {"id": 5, "nome": "Manutentore interno", "descrizione": "Gestione debug e problematiche"},
+]
 
 
 def applica_tooltip(testo: str) -> str:
@@ -120,16 +129,7 @@ def cerca_immagine_bing(query):
         return ""
 
 @app.post("/ask")
-async def ask_question(request: Request):
-    try:
-        payload = await request.json()
-        user_question = payload.get("query", "").strip()
-
-        if not user_question:
-            raise HTTPException(status_code=422, detail="Inserisci il campo 'query' nel JSON")
-
-        logger.info(f"▶️ Ricevuta query: {user_question!r}")
-
+@@ -133,25 +142,31 @@ async def ask_question(request: Request):
         try:
             answer = rag.run(user_question)
         except AssertionError as ae:
@@ -155,3 +155,9 @@ async def ask_question(request: Request):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/agents")
+async def list_agents():
+    """Restituisce l'elenco degli agenti configurati."""
+    return {"agenti": AGENTS}
