@@ -3,6 +3,7 @@ import traceback
 import os
 import re
 import requests
+from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -26,6 +27,9 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+# Base directory of the project
+BASE_DIR = Path(__file__).resolve().parent
+
 # ────────────────────────────────────────────────────────────────────────────────
 # FastAPI bootstrap
 # ────────────────────────────────────────────────────────────────────────────────
@@ -34,8 +38,10 @@ app = FastAPI()
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
+    return FileResponse(BASE_DIR / "static" / "index.html")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
