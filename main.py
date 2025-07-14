@@ -3,7 +3,6 @@ import traceback
 import os
 import re
 import requests
-from pathlib import Path
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -27,9 +26,6 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-# Base directory of the project
-BASE_DIR = Path(__file__).resolve().parent
-
 # ────────────────────────────────────────────────────────────────────────────────
 # FastAPI bootstrap
 # ────────────────────────────────────────────────────────────────────────────────
@@ -38,10 +34,8 @@ app = FastAPI()
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
-    return FileResponse(BASE_DIR / "static" / "index.html")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
@@ -76,7 +70,7 @@ try:
         chain_type="stuff",
         retriever=retriever,
         chain_type_kwargs={"prompt": prompt, "document_variable_name": "context"},
-   )
+    )
     logger.info("✅ Pipeline RAG inizializzata correttamente.")
 except Exception:
     logger.exception("❌ Errore durante l'inizializzazione della pipeline RAG:")
@@ -100,15 +94,6 @@ TOOLTIPS = {
     "programma": "Ciclo di lavaggio o asciugatura selezionato dall’utente.",
     "inverter": "Tipo di motore elettronico a basso consumo."
 }
-
-# Elenco degli agenti disponibili nel progetto
-AGENTS = [
-    {"id": 1, "nome": "Gustav", "descrizione": "Riparatore tecnico esperto di elettrodomestici"},
-    {"id": 2, "nome": "Yomo", "descrizione": "Validatore e cercatore di informazioni"},
-    {"id": 3, "nome": "Jenna", "descrizione": "Esperto di utilizzo degli elettrodomestici"},
-    {"id": 4, "nome": "Liutprando", "descrizione": "Comico venditore esperto di elettrodomestici"},
-    {"id": 5, "nome": "Manutentore interno", "descrizione": "Gestione debug e problematiche"},
-]
 
 
 def applica_tooltip(testo: str) -> str:
@@ -134,7 +119,42 @@ def cerca_immagine_bing(query):
     except:
         return ""
 
+
 @app.post("/ask")
+async def ask_question(request: Request):
+    try:
+        body = await request.json()
+        user_question = body.get("domanda", "")
+
+        if not user_question:
+            return JSONResponse(status_code=400, content={"error": "Nessuna domanda fornita."})
+
+        answer = rag.run(user_question)
+
+        image_url = cerca_immagine_bing(user_question)
+        html_answer = answer.replace("\n", "<br>")
+        html_answer = applica_tooltip(html_answer)
+
+        if image_url:
+            html_answer += f"<br><br><img src='{image_url}' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"
+
+        return {"risposta": html_answer}
+
+    except HTTPException:
+        raise
+    except Exception:
+        tb = traceback.format_exc()
+        logger.error(f"❌ Errore interno durante /ask:\n{tb}")
+        return JSONResponse(status_code=500, content={"error": tb})
+async def ask_question(request: Request):
+    try:
+        payload = await request.json()
+        user_question = payload.get("query", "").strip()
+
+        if not user_question:
+            raise HTTPException(status_code=422, detail="Inserisci il campo 'query' nel JSON")
+
+        logger.info(f"▶️ Ricevuta query: {user_question!r}")
 
         try:
             answer = rag.run(user_question)
@@ -161,9 +181,3 @@ def cerca_immagine_bing(query):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
-
-@app.get("/agents")
-async def list_agents():
-    """Restituisce l'elenco degli agenti configurati."""
-    return {"agenti": AGENTS}
