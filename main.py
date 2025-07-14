@@ -135,7 +135,7 @@ def cerca_immagine_bing(query):
         return ""
 
 @app.post("/ask")
-@@ -133,25 +142,31 @@ async def ask_question(request: Request):
+
         try:
             answer = rag.run(user_question)
         except AssertionError as ae:
