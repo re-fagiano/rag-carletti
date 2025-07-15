@@ -57,3 +57,17 @@ curl -X POST http://localhost:8000/ask \
      -H 'Content-Type: application/json' \
      -d '{"query": "Perché la lavatrice non scarica?", "agent_id": 3}'
 ```
+
+## Aggiornamento dell'indice dei documenti
+
+Se modifichi o aggiungi file nella cartella `docs/` devi rigenerare la cartella `vectordb/` per riflettere i nuovi contenuti.
+
+Puoi utilizzare uno dei seguenti script (richiedono entrambi la variabile d'ambiente `OPENAI_API_KEY` impostata):
+
+```bash
+python index_documents.py      # indicizza tutti i documenti
+# oppure
+python rebuild_vectordb.py
+```
+
+Al termine l'indice FAISS nella cartella `vectordb/` sarà aggiornato con le ultime modifiche.
