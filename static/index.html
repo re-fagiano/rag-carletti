@@ -201,36 +201,41 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
       }
 
-      addMessage('Buongiorno, come posso aiutarla?', 'bot');
-      promptInput.focus();
-
-      sendBtn.addEventListener('click', () => {
-        const userText = promptInput.value.trim();
-        if (!userText) return;
-        addMessage(userText, 'user');
+      function inviaRichiesta(testo, mostraUtente = true) {
+        const query = testo.trim();
+        if (!query) return;
+        if (mostraUtente) addMessage(query, 'user');
         addMessage('<span id="loading">⏳ Sto pensando...</span>', 'bot');
-        promptInput.value = '';
         sendBtn.disabled = true;
 
         fetch('/ask', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query, agent_id: parseInt(agentSelect.value) })
+        })
+          .then(resp => resp.json())
+          .then(data => {
+            document.getElementById('loading').parentElement.remove();
+            addMessage(data.risposta, 'bot');
+            sendBtn.disabled = false;
+            promptInput.focus();
+          })
+          .catch(err => {
+            console.error(err);
+            document.getElementById('loading').parentElement.remove();
+            addMessage('❌ Errore: impossibile contattare il server.', 'bot');
+            sendBtn.disabled = false;
+          });
+      }
 
-          body: JSON.stringify({ query: userText, agent_id: parseInt(agentSelect.value) })
-        })
-        .then(resp => resp.json())
-        .then(data => {
-          document.getElementById('loading').parentElement.remove();
-          addMessage(data.risposta, 'bot');
-          sendBtn.disabled = false;
-          promptInput.focus();
-        })
-        .catch(err => {
-          console.error(err);
-          document.getElementById('loading').parentElement.remove();
-          addMessage('❌ Errore: impossibile contattare il server.', 'bot');
-          sendBtn.disabled = false;
-        });
+      inviaRichiesta('introduzione', false);
+      promptInput.focus();
+
+      sendBtn.addEventListener('click', () => {
+        const userText = promptInput.value.trim();
+        if (!userText) return;
+        promptInput.value = '';
+        inviaRichiesta(userText, true);
       });
 
       promptInput.addEventListener('keydown', e => {
