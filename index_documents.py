@@ -16,11 +16,12 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise Exception("Devi impostare la variabile d'ambiente OPENAI_API_KEY per usare OpenAIEmbeddings.")
 
-# 1) Carica tutti i file .txt in documenti/ (ricorsivamente)
+# 1) Carica tutti i file .txt in docs/ (ricorsivamente)
 txt_loader = DirectoryLoader("docs", glob="**/*.txt", loader_cls=TextLoader)
 
-# 2) Se vuoi includere anche i PDF, decommenta le righe seguenti:
-# pdf_loader = DirectoryLoader("documenti", glob="**/*.pdf", loader_cls=PDFMinerLoader)
+# 2) Se vuoi includere anche i PDF, decommenta le righe seguenti e assicurati
+#    di avere PDFMinerLoader installato:
+# pdf_loader = DirectoryLoader("docs", glob="**/*.pdf", loader_cls=PDFMinerLoader)
 # documents = txt_loader.load() + pdf_loader.load()
 
 # Se ti bastano solo .txt, usa:
