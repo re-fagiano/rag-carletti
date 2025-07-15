@@ -54,24 +54,13 @@ try:
 
     llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0, openai_api_key=OPENAI_API_KEY)
 
-    system_instruction = (
-        "Sei un tecnico professionale per la riparazione di elettrodomestici. Rispondi sempre in modo chiaro, tecnico, e senza ironia. "
+    BASE_INSTRUCTION = (
+        "Rispondi sempre in modo chiaro, tecnico, e senza ironia. "
         "Non aggiungere battute, frasi umoristiche o riferimenti surreali. Concentrati solo sulla risoluzione del problema. "
         "Se rilevi termini tecnici, formattali con i tooltip. Se opportuno, includi un'immagine rilevante tramite Bing."
     )
 
-    prompt = ChatPromptTemplate.from_messages([
-        SystemMessagePromptTemplate.from_template(system_instruction),
-        HumanMessagePromptTemplate.from_template("Contesto:\n{context}\n\nDomanda: {question}"),
-    ])
-
-    rag = RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type="stuff",
-        retriever=retriever,
-        chain_type_kwargs={"prompt": prompt, "document_variable_name": "context"},
-    )
-    logger.info("✅ Pipeline RAG inizializzata correttamente.")
+    logger.info("✅ Ambiente base inizializzato correttamente.")
 except Exception:
     logger.exception("❌ Errore durante l'inizializzazione della pipeline RAG:")
     raise
@@ -103,6 +92,29 @@ AGENTS = [
     {"id": 4, "nome": "Liutprando", "descrizione": "Comico venditore esperto di elettrodomestici"},
     {"id": 5, "nome": "Manutentore interno", "descrizione": "Gestione debug e problematiche"},
 ]
+
+# Prompt personalizzati per ciascun agente
+AGENT_PROMPTS = {
+    1: "Ciao, sono Gustav, riparatore tecnico esperto di elettrodomestici. " + BASE_INSTRUCTION,
+    2: "Ciao, sono Yomo, validatore e cercatore di informazioni. " + BASE_INSTRUCTION,
+    3: "Ciao, sono Jenna, esperta di utilizzo degli elettrodomestici. " + BASE_INSTRUCTION,
+    4: "Ciao, sono Liutprando, comico venditore esperto di elettrodomestici. " + BASE_INSTRUCTION,
+    5: "Ciao, sono il Manutentore interno e gestisco debug e problematiche. " + BASE_INSTRUCTION,
+}
+
+
+def build_rag(system_instruction: str) -> RetrievalQA:
+    """Crea una catena RAG con il prompt fornito."""
+    prompt = ChatPromptTemplate.from_messages([
+        SystemMessagePromptTemplate.from_template(system_instruction),
+        HumanMessagePromptTemplate.from_template("Contesto:\n{context}\n\nDomanda: {question}"),
+    ])
+    return RetrievalQA.from_chain_type(
+        llm=llm,
+        chain_type="stuff",
+        retriever=retriever,
+        chain_type_kwargs={"prompt": prompt, "document_variable_name": "context"},
+    )
 
 
 def applica_tooltip(testo: str) -> str:
@@ -138,11 +150,22 @@ async def ask_question(request: Request):
         if not user_question:
             raise HTTPException(status_code=422, detail="Inserisci il campo 'query' nel JSON")
 
-        logger.info(f"▶️ Ricevuta query: {user_question!r}")
+        # Recupera l'id dell'agente, accettando sia 'agent_id' che 'agent'
+        agent_raw = payload.get("agent_id") or payload.get("agent")
+        try:
+            agent_id = int(agent_raw)
+        except (TypeError, ValueError):
+            agent_id = 1
+        if agent_id not in AGENT_PROMPTS:
+            agent_id = 1
+
+        logger.info(f"▶️ Ricevuta query: {user_question!r} per agente {agent_id}")
+
+        rag = build_rag(AGENT_PROMPTS[agent_id])
 
         try:
             answer = rag.run(user_question)
-        except AssertionError as ae:
+        except AssertionError:
             msg = "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
             return JSONResponse(status_code=500, content={"error": msg})
 
