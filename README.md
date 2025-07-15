@@ -9,10 +9,10 @@ Nel file [AGENTS_INFO.md](AGENTS_INFO.md) sono elencati gli agenti disponibili e
 
 | # | Nome | Descrizione |
 |---|------|-------------|
-| 1 | Gustav | Tecnico esperto nella riparazione degli elettrodomestici. Guida la diagnosi con domande mirate e spiegazioni chiare. |
-| 2 | Yomo | Amica esperta in prodotti per la cura degli elettrodomestici |
-| 3 | Jenna | Assistente per utilizzare al meglio gli elettrodomestici, con trucchi, strategie e curiosità utili |
-| 4 | Liutprando | Consulente per la scelta degli elettrodomestici, esperto di caratteristiche tecniche ed efficienza energetica |
+| 1 | Gustav | Tecnico esperto nella riparazione degli elettrodomestici. Guida l'utente con domande mirate e spiegazioni concise per una diagnosi efficace. |
+| 2 | Yomo | Amica esperta in prodotti per la cura degli elettrodomestici. Suggerisce soluzioni pratiche e performanti per la manutenzione. |
+| 3 | Jenna | Assistente per utilizzare al meglio gli elettrodomestici. Offre consigli pratici e curiosità per ottimizzare l'uso. |
+| 4 | Liutprando | Consulente per la scelta degli elettrodomestici perfetti. Propone modelli su misura analizzando caratteristiche tecniche. |
 | 5 | Manutentore interno | Gestione debug e problematiche |
 
 La stessa lista è disponibile via API con una richiesta `GET /agents`.
