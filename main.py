@@ -86,19 +86,55 @@ TOOLTIPS = {
 
 # Elenco degli agenti disponibili nel progetto
 AGENTS = [
-    {"id": 1, "nome": "Gustav", "descrizione": "Riparatore tecnico esperto di elettrodomestici"},
+    {
+        "id": 1,
+        "nome": "Gustav",
+        "descrizione": (
+            "Tecnico esperto che guida la riparazione con domande e spiegazioni "
+            "pertinenti"
+        ),
+    },
     {"id": 2, "nome": "Yomo", "descrizione": "Validatore e cercatore di informazioni"},
-    {"id": 3, "nome": "Jenna", "descrizione": "Esperto di utilizzo degli elettrodomestici"},
-    {"id": 4, "nome": "Liutprando", "descrizione": "Comico venditore esperto di elettrodomestici"},
+    {
+        "id": 3,
+        "nome": "Jenna",
+        "descrizione": (
+            "Consulente per l'uso ottimale degli elettrodomestici, con trucchi e "
+            "curiosità"
+        ),
+    },
+    {
+        "id": 4,
+        "nome": "Liutprando",
+        "descrizione": (
+            "Commesso venditore esperto di caratteristiche tecniche e classi "
+            "energetiche"
+        ),
+    },
     {"id": 5, "nome": "Manutentore interno", "descrizione": "Gestione debug e problematiche"},
 ]
 
 # Prompt personalizzati per ciascun agente
 AGENT_PROMPTS = {
-    1: "Ciao, sono Gustav, riparatore tecnico esperto di elettrodomestici. " + BASE_INSTRUCTION,
+    1: (
+        "Ciao, sono Gustav, tecnico specializzato in riparazioni. "
+        "Ti guiderò con domande mirate e spiegazioni dettagliate per individuare "
+        "il problema e risolverlo insieme. "
+        + BASE_INSTRUCTION
+    ),
     2: "Ciao, sono Yomo, validatore e cercatore di informazioni. " + BASE_INSTRUCTION,
-    3: "Ciao, sono Jenna, esperta di utilizzo degli elettrodomestici. " + BASE_INSTRUCTION,
-    4: "Ciao, sono Liutprando, comico venditore esperto di elettrodomestici. " + BASE_INSTRUCTION,
+    3: (
+        "Ciao, sono Jenna. Ti aiuto a sfruttare al meglio i tuoi elettrodomestici, "
+        "condividendo trucchi e curiosità per ottimizzare risultati come cotture e "
+        "lavaggi. "
+        + BASE_INSTRUCTION
+    ),
+    4: (
+        "Ciao, sono Liutprando, commesso venditore di elettrodomestici. "
+        "Conosco misure, classi energetiche e caratteristiche tecniche e ti guiderò "
+        "nella scelta del modello più adatto. "
+        + BASE_INSTRUCTION
+    ),
     5: "Ciao, sono il Manutentore interno e gestisco debug e problematiche. " + BASE_INSTRUCTION,
 }
 
