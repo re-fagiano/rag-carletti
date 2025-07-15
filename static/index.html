@@ -193,10 +193,36 @@
       const agentSelect = document.getElementById('agent-select');
       const sendBtn = document.getElementById('send-btn');
 
+      function sanitizeHTML(str) {
+        const template = document.createElement('template');
+        template.innerHTML = str;
+        const allowedTags = ['BR', 'IMG', 'SPAN'];
+        const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT, null);
+        const toRemove = [];
+        while (walker.nextNode()) {
+          const el = walker.currentNode;
+          if (!allowedTags.includes(el.tagName)) {
+            toRemove.push(el);
+          } else {
+            const attrs = Array.from(el.attributes);
+            for (const a of attrs) {
+              if (el.tagName === 'IMG' && !['src','alt','style'].includes(a.name.toLowerCase())) el.removeAttribute(a.name);
+              if (el.tagName === 'SPAN' && !['class','id','style'].includes(a.name.toLowerCase())) el.removeAttribute(a.name);
+            }
+          }
+        }
+        toRemove.forEach(n => n.replaceWith(...n.childNodes));
+        return template.innerHTML;
+      }
+
       function addMessage(text, sender) {
         const msg = document.createElement('div');
         msg.classList.add('message', sender);
-        msg.innerHTML = text;
+        if (sender === 'user') {
+          msg.textContent = text;
+        } else {
+          msg.innerHTML = sanitizeHTML(text);
+        }
         chatContainer.appendChild(msg);
         chatContainer.scrollTop = chatContainer.scrollHeight;
       }
