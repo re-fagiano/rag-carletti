@@ -17,6 +17,10 @@ Nel file [AGENTS_INFO.md](AGENTS_INFO.md) sono elencati gli agenti disponibili e
 
 La stessa lista è disponibile via API con una richiesta `GET /agents`.
 
+Per maggiori dettagli sui prompt utilizzati da ciascun agente consulta il file
+[docs/AGENT_PROMPTS.md](docs/AGENT_PROMPTS.md). Le stesse istruzioni sono
+implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
+
 ## Preparazione dell'ambiente
 
 1. **Installazione delle dipendenze**

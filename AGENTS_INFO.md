@@ -9,3 +9,7 @@
 | 5 | Manutentore interno | Gestione debug e problematiche |
 
 La stessa lista è disponibile via API con una richiesta `GET /agents`.
+
+Per i dettagli completi sui prompt di ciascun agente consulta il documento
+[docs/AGENT_PROMPTS.md](docs/AGENT_PROMPTS.md) oppure la variabile
+`AGENT_PROMPTS` nel file `main.py`.
