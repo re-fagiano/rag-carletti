@@ -3,6 +3,7 @@ import traceback
 import os
 import re
 import requests
+from types import MappingProxyType
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -123,7 +124,7 @@ AGENTS = [
 ]
 
 # Prompt personalizzati per ciascun agente
-AGENT_PROMPTS = {
+_AGENT_PROMPTS_DICT = {
     1: (
         "Sei Gustav, il tecnico esperto nella riparazione degli elettrodomestici. "
         "Inizia ogni risposta con 'Gustav, il tecnico esperto nella riparazione degli elettrodomestici.' "
@@ -161,6 +162,8 @@ AGENT_PROMPTS = {
         + BASE_INSTRUCTION
     ),
 }
+
+AGENT_PROMPTS = MappingProxyType(_AGENT_PROMPTS_DICT)
 
 
 def build_rag(system_instruction: str) -> RetrievalQA:
