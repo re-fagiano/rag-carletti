@@ -3,6 +3,7 @@ import traceback
 import os
 import re
 import requests
+import html
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -241,11 +242,14 @@ async def ask_question(request: Request):
             return JSONResponse(status_code=500, content={"error": msg})
 
         image_url = cerca_immagine_bing(user_question)
-        html_answer = answer.replace("\n", "<br>")
+        safe_answer = html.escape(answer)
+        html_answer = safe_answer.replace("\n", "<br>")
         html_answer = applica_tooltip(html_answer)
 
         if image_url:
-            html_answer += f"<br><br><img src='{image_url}' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"
+            html_answer += (
+                "<br><br><img src='" + html.escape(image_url) + "' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"
+            )
 
         return {"risposta": html_answer}
 
