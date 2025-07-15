@@ -187,7 +187,7 @@
       body.classList.toggle("dark");
     }
 
-    window.addEventListener('load', () => {
+      window.addEventListener('load', () => {
       const chatContainer = document.getElementById('chat-container');
       const promptInput = document.getElementById('prompt');
       const agentSelect = document.getElementById('agent-select');
@@ -201,7 +201,7 @@
         chatContainer.scrollTop = chatContainer.scrollHeight;
       }
 
-      function inviaRichiesta(testo, mostraUtente = true) {
+        function inviaRichiesta(testo, mostraUtente = true) {
         const query = testo.trim();
         if (!query) return;
         if (mostraUtente) addMessage(query, 'user');
@@ -228,15 +228,24 @@
           });
       }
 
-      inviaRichiesta('introduzione', false);
-      promptInput.focus();
+        let introShown = false;
+        promptInput.focus();
 
-      sendBtn.addEventListener('click', () => {
-        const userText = promptInput.value.trim();
-        if (!userText) return;
-        promptInput.value = '';
-        inviaRichiesta(userText, true);
-      });
+        agentSelect.addEventListener('change', () => {
+          inviaRichiesta('introduzione', false);
+          introShown = true;
+        });
+
+        sendBtn.addEventListener('click', () => {
+          const userText = promptInput.value.trim();
+          if (!userText) return;
+          if (!introShown) {
+            inviaRichiesta('introduzione', false);
+            introShown = true;
+          }
+          promptInput.value = '';
+          inviaRichiesta(userText, true);
+        });
 
       promptInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') {
