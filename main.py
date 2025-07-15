@@ -212,12 +212,23 @@ async def ask_question(request: Request):
 
         # Recupera l'id dell'agente, accettando sia 'agent_id' che 'agent'
         agent_raw = payload.get("agent_id") or payload.get("agent")
-        try:
-            agent_id = int(agent_raw)
-        except (TypeError, ValueError):
-            agent_id = 1
-        if agent_id not in AGENT_PROMPTS:
-            agent_id = 1
+        agent_id = 1
+        if agent_raw is not None:
+            try:
+                candidate = int(agent_raw)
+                if candidate not in AGENT_PROMPTS:
+                    raise ValueError()
+                agent_id = candidate
+            except (TypeError, ValueError):
+                if isinstance(agent_raw, str):
+                    name = agent_raw.strip().lower()
+                    match = next((a["id"] for a in AGENTS if a["nome"].lower() == name), None)
+                    if match is not None:
+                        agent_id = match
+                    else:
+                        raise HTTPException(status_code=422, detail={"error": "Invalid agent", "agenti": AGENTS})
+                else:
+                    raise HTTPException(status_code=422, detail={"error": "Invalid agent", "agenti": AGENTS})
 
         logger.info(f"▶️ Ricevuta query: {user_question!r} per agente {agent_id}")
 
