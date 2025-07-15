@@ -95,6 +95,15 @@ TOOLTIPS = {
     "inverter": "Tipo di motore elettronico a basso consumo."
 }
 
+# Elenco degli agenti disponibili nel progetto
+AGENTS = [
+    {"id": 1, "nome": "Gustav", "descrizione": "Riparatore tecnico esperto di elettrodomestici"},
+    {"id": 2, "nome": "Yomo", "descrizione": "Validatore e cercatore di informazioni"},
+    {"id": 3, "nome": "Jenna", "descrizione": "Esperto di utilizzo degli elettrodomestici"},
+    {"id": 4, "nome": "Liutprando", "descrizione": "Comico venditore esperto di elettrodomestici"},
+    {"id": 5, "nome": "Manutentore interno", "descrizione": "Gestione debug e problematiche"},
+]
+
 
 def applica_tooltip(testo: str) -> str:
     for chiave, spiegazione in TOOLTIPS.items():
@@ -121,31 +130,6 @@ def cerca_immagine_bing(query):
 
 
 @app.post("/ask")
-async def ask_question(request: Request):
-    try:
-        body = await request.json()
-        user_question = body.get("domanda", "")
-
-        if not user_question:
-            return JSONResponse(status_code=400, content={"error": "Nessuna domanda fornita."})
-
-        answer = rag.run(user_question)
-
-        image_url = cerca_immagine_bing(user_question)
-        html_answer = answer.replace("\n", "<br>")
-        html_answer = applica_tooltip(html_answer)
-
-        if image_url:
-            html_answer += f"<br><br><img src='{image_url}' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"
-
-        return {"risposta": html_answer}
-
-    except HTTPException:
-        raise
-    except Exception:
-        tb = traceback.format_exc()
-        logger.error(f"❌ Errore interno durante /ask:\n{tb}")
-        return JSONResponse(status_code=500, content={"error": tb})
 async def ask_question(request: Request):
     try:
         payload = await request.json()
@@ -181,3 +165,9 @@ async def ask_question(request: Request):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/agents")
+async def list_agents():
+    """Restituisce l'elenco degli agenti configurati."""
+    return {"agenti": AGENTS}
