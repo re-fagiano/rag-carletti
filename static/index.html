@@ -172,11 +172,11 @@
   <div id="input-container">
     <input type="text" id="prompt" placeholder="Scrivi qui la tua domanda..." />
     <select id="agent-select">
-      <option value="Gustav">Gustav</option>
-      <option value="Yomo">Yomo</option>
-      <option value="Jenna">Jenna</option>
-      <option value="Liutprando">Liutprando</option>
-      <option value="Manutentore interno">Manutentore interno</option>
+      <option value="1">Gustav</option>
+      <option value="2">Yomo</option>
+      <option value="3">Jenna</option>
+      <option value="4">Liutprando</option>
+      <option value="5">Manutentore interno</option>
     </select>
     <button id="send-btn">Invia</button>
   </div>
@@ -216,7 +216,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
 
-          body: JSON.stringify({ query: userText, agente: agentSelect.value })
+          body: JSON.stringify({ query: userText, agent_id: parseInt(agentSelect.value) })
         })
         .then(resp => resp.json())
         .then(data => {
