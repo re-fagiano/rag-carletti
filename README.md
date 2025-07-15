@@ -49,13 +49,17 @@ docker run -p 8000:8000 -e OPENAI_API_KEY=<la tua chiave> rag-carletti
 ```
 
 ## Endpoint /ask
-L'endpoint accetta il campo JSON `query` e, opzionalmente, `agent_id` (o `agent`) per scegliere quale agente deve rispondere. Se il parametro è assente o non valido verrà usato Gustav (id `1`). L'elenco completo degli agenti è consultabile anche con `GET /agents`.
+L'endpoint accetta il campo JSON `query` e, opzionalmente, `agent_id` (o `agent`) per scegliere quale agente deve rispondere. Se il parametro è assente verrà usato Gustav (id `1`). È possibile indicare l'id numerico o il nome dell'agente (non viene fatta distinzione tra maiuscole e minuscole). Se il valore non è riconosciuto l'API restituisce errore `422`. L'elenco completo degli agenti è consultabile con `GET /agents`.
 
-Esempio di richiesta:
+Esempi di richiesta:
 ```bash
 curl -X POST http://localhost:8000/ask \
      -H 'Content-Type: application/json' \
      -d '{"query": "Perché la lavatrice non scarica?", "agent_id": 3}'
+
+curl -X POST http://localhost:8000/ask \
+     -H 'Content-Type: application/json' \
+     -d '{"query": "Consigli per la manutenzione", "agent": "yomo"}'
 ```
 
 ## Aggiornamento dell'indice dei documenti
