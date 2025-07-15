@@ -215,8 +215,8 @@
         fetch('/ask', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-      
-          body: JSON.stringify({ domanda: userText, agente: agentSelect.value })
+
+          body: JSON.stringify({ query: userText, agente: agentSelect.value })
         })
         .then(resp => resp.json())
         .then(data => {
