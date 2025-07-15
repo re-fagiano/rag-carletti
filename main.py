@@ -123,6 +123,30 @@ AGENTS = [
     {"id": 5, "nome": "Manutentore interno", "descrizione": "Gestione debug e problematiche"},
 ]
 
+# Brevi presentazioni per ciascun agente
+AGENT_INTROS = {
+    1: (
+        "Gustav, il tecnico esperto nella riparazione degli elettrodomestici. "
+        "Sono qui per aiutarti a diagnosticare rapidamente ogni guasto."
+    ),
+    2: (
+        "Yomo, la tua amica esperta in prodotti per la cura degli elettrodomestici. "
+        "Posso consigliarti soluzioni pratiche per la manutenzione quotidiana."
+    ),
+    3: (
+        "Jenna, l'assistente per utilizzare al meglio i tuoi elettrodomestici. "
+        "Ti svelo trucchi e strategie per ottenere sempre risultati eccellenti."
+    ),
+    4: (
+        "Liutprando, il tuo consulente nella scelta degli elettrodomestici perfetti per te. "
+        "Ti aiuto a confrontare modelli e caratteristiche tecniche."
+    ),
+    5: (
+        "Manutentore interno. "
+        "Gestisco il debug e ogni problematica tecnica dei tuoi apparecchi."
+    ),
+}
+
 # Prompt personalizzati per ciascun agente
 _AGENT_PROMPTS_DICT = {
     1: (
@@ -200,7 +224,7 @@ def cerca_immagine_bing(query):
     try:
         results = response.json()
         return results["value"][0]["contentUrl"] if results["value"] else ""
-    except:
+    except Exception:
         return ""
 
 
@@ -235,13 +259,18 @@ async def ask_question(request: Request):
 
         logger.info(f"▶️ Ricevuta query: {user_question!r} per agente {agent_id}")
 
-        rag = build_rag(AGENT_PROMPTS[agent_id])
-
-        try:
-            answer = rag.run(user_question)
-        except AssertionError:
-            msg = "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
-            return JSONResponse(status_code=500, content={"error": msg})
+        # Gestisce la richiesta di introduzione senza invocare la RAG
+        if user_question.lower() == "introduzione":
+            answer = AGENT_INTROS[agent_id]
+        else:
+            rag = build_rag(AGENT_PROMPTS[agent_id])
+            try:
+                answer = rag.run(user_question)
+            except AssertionError:
+                msg = (
+                    "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
+                )
+                return JSONResponse(status_code=500, content={"error": msg})
 
         image_url = cerca_immagine_bing(user_question)
         html_answer = answer.replace("\n", "<br>")
