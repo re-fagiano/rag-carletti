@@ -1,7 +1,22 @@
+import argparse
 import requests
 
 # URL della tua API FastAPI
 url = "http://127.0.0.1:8000/ask"
+
+parser = argparse.ArgumentParser(description="Client CLI per interrogare l'API /ask")
+parser.add_argument("--agent-id", "-a", type=int, help="ID dell'agente da utilizzare")
+args = parser.parse_args()
+
+agent_id = args.agent_id
+if agent_id is None:
+    scelta = input(
+        "Seleziona l'agente (1=Gustav, 2=Yomo, 3=Jenna, 4=Liutprando, 5=Manutentore interno) [1]: "
+    ).strip()
+    try:
+        agent_id = int(scelta or 1)
+    except ValueError:
+        agent_id = 1
 
 print("🤖 Assistente RAG attivo! Scrivi una domanda (digita 'esci' per uscire)\n")
 
@@ -16,7 +31,7 @@ while True:
         break
 
     try:
-        response = requests.post(url, json={"query": domanda})
+        response = requests.post(url, json={"query": domanda, "agent_id": agent_id})
         if response.status_code == 200:
             print("🤖 Bot:", response.json().get("risposta", "[Nessuna risposta]"))
         else:
