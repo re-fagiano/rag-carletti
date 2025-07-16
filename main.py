@@ -198,7 +198,7 @@ def build_rag(system_instruction: str) -> RetrievalQA:
     ])
     return RetrievalQA.from_chain_type(
         llm=llm,
-        chain_type="stuff",
+        chain_type="refine",
         retriever=retriever,
         chain_type_kwargs={"prompt": prompt, "document_variable_name": "context"},
     )
