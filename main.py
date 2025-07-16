@@ -262,33 +262,35 @@ async def ask_question(request: Request):
         # Gestisce la richiesta di introduzione senza invocare la RAG
         if user_question.lower() == "introduzione":
             answer = AGENT_INTROS[agent_id]
-        if user_question.lower() == "introduzione":
-    answer = AGENT_INTROS[agent_id]
-else:
-    # Esempio: Jenna non deve usare la RAG se la domanda è fuori ambito
-    if agent_id == 3 and any(term in user_question.lower() for term in ["errore", "pompa", "guasto", "non funziona", "codice", "sostituire"]):
-        answer = (
-            "Jenna, l'assistente per utilizzare al meglio i tuoi elettrodomestici. "
-            "Mi occupo di consigli sull'uso quotidiano, non di problemi tecnici. "
-            "Per assistenza su guasti o riparazioni, chiedi a Gustav, il tecnico esperto."
-        )
-    else:
-        rag = build_rag(AGENT_PROMPTS[agent_id])
-        try:
-            answer = rag.run(user_question)
-
-            except AssertionError:
-                msg = (
-                    "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
+        else:
+            # Esempio: Jenna non deve usare la RAG se la domanda è fuori ambito
+            if agent_id == 3 and any(
+                term in user_question.lower()
+                for term in ["errore", "pompa", "guasto", "non funziona", "codice", "sostituire"]
+            ):
+                answer = (
+                    "Jenna, l'assistente per utilizzare al meglio i tuoi elettrodomestici. "
+                    "Mi occupo di consigli sull'uso quotidiano, non di problemi tecnici. "
+                    "Per assistenza su guasti o riparazioni, chiedi a Gustav, il tecnico esperto."
                 )
-                return JSONResponse(status_code=500, content={"error": msg})
+            else:
+                rag = build_rag(AGENT_PROMPTS[agent_id])
+                try:
+                    answer = rag.run(user_question)
+                except AssertionError:
+                    msg = (
+                        "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
+                    )
+                    return JSONResponse(status_code=500, content={"error": msg})
 
         image_url = cerca_immagine_bing(user_question)
         html_answer = answer.replace("\n", "<br>")
         html_answer = applica_tooltip(html_answer)
 
         if image_url:
-            html_answer += f"<br><br><img src='{image_url}' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"
+            html_answer += (
+                f"<br><br><img src='{image_url}' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"
+            )
 
         return {"risposta": html_answer}
 
