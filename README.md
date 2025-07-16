@@ -39,7 +39,7 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
 
 3. **Avvio dell'applicazione**
    ```bash
-   python main.py
+   uvicorn main:app --reload
    ```
    L'interfaccia web sarà disponibile su `http://127.0.0.1:8000`.
 

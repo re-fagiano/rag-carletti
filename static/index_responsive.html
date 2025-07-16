@@ -167,9 +167,14 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query: userText })
         })
-        .then(resp => resp.json())
-        .then(data => {
-          addMessage(data.risposta, 'bot');
+        .then(async resp => {
+          const data = await resp.json();
+          if (resp.ok && data.risposta) {
+            addMessage(data.risposta, 'bot');
+          } else {
+            const msg = data.error || 'Errore interno.';
+            addMessage('❌ ' + msg, 'bot');
+          }
           sendBtn.disabled = false;
           promptInput.focus();
         })
