@@ -12,11 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
-from langchain.prompts import (
-    ChatPromptTemplate,
-    SystemMessagePromptTemplate,
-    HumanMessagePromptTemplate,
-)
+from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -192,18 +188,28 @@ AGENT_PROMPTS = MappingProxyType(_AGENT_PROMPTS_DICT)
 
 def build_rag(system_instruction: str) -> RetrievalQA:
     """Crea una catena RAG con il prompt fornito."""
-    prompt = ChatPromptTemplate.from_messages([
-        SystemMessagePromptTemplate.from_template(system_instruction),
-        HumanMessagePromptTemplate.from_template(
-            "Contesto:\n{context_str}\n\nDomanda: {question}"
+
+    question_prompt = PromptTemplate(
+        template=(
+            f"{system_instruction}\nContesto:\n{{context_str}}\n\nDomanda: {{question}}"
         ),
-    ])
+        input_variables=["context_str", "question"],
+    )
+
+    refine_prompt = PromptTemplate(
+        template=(
+            f"{system_instruction}\n{{existing_answer}}\n\nContesto aggiuntivo:\n{{context_str}}\n\nDomanda: {{question}}"
+        ),
+        input_variables=["existing_answer", "context_str", "question"],
+    )
+
     return RetrievalQA.from_chain_type(
         llm=llm,
         chain_type="refine",
         retriever=retriever,
         chain_type_kwargs={
-            "prompt": prompt,
+            "question_prompt": question_prompt,
+            "refine_prompt": refine_prompt,
             "document_variable_name": "context_str",
         },
     )
