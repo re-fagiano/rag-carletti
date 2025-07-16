@@ -262,10 +262,21 @@ async def ask_question(request: Request):
         # Gestisce la richiesta di introduzione senza invocare la RAG
         if user_question.lower() == "introduzione":
             answer = AGENT_INTROS[agent_id]
-        else:
-            rag = build_rag(AGENT_PROMPTS[agent_id])
-            try:
-                answer = rag.run(user_question)
+        if user_question.lower() == "introduzione":
+    answer = AGENT_INTROS[agent_id]
+else:
+    # Esempio: Jenna non deve usare la RAG se la domanda è fuori ambito
+    if agent_id == 3 and any(term in user_question.lower() for term in ["errore", "pompa", "guasto", "non funziona", "codice", "sostituire"]):
+        answer = (
+            "Jenna, l'assistente per utilizzare al meglio i tuoi elettrodomestici. "
+            "Mi occupo di consigli sull'uso quotidiano, non di problemi tecnici. "
+            "Per assistenza su guasti o riparazioni, chiedi a Gustav, il tecnico esperto."
+        )
+    else:
+        rag = build_rag(AGENT_PROMPTS[agent_id])
+        try:
+            answer = rag.run(user_question)
+
             except AssertionError:
                 msg = (
                     "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
