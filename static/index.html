@@ -213,10 +213,15 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query, agent_id: parseInt(agentSelect.value) })
         })
-          .then(resp => resp.json())
-          .then(data => {
+          .then(async resp => {
+            const data = await resp.json();
             document.getElementById('loading').parentElement.remove();
-            addMessage(data.risposta, 'bot');
+            if (resp.ok && data.risposta) {
+              addMessage(data.risposta, 'bot');
+            } else {
+              const msg = data.error || 'Errore interno.';
+              addMessage('❌ ' + msg, 'bot');
+            }
             sendBtn.disabled = false;
             promptInput.focus();
           })
