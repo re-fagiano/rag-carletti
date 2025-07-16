@@ -194,13 +194,18 @@ def build_rag(system_instruction: str) -> RetrievalQA:
     """Crea una catena RAG con il prompt fornito."""
     prompt = ChatPromptTemplate.from_messages([
         SystemMessagePromptTemplate.from_template(system_instruction),
-        HumanMessagePromptTemplate.from_template("Contesto:\n{context}\n\nDomanda: {question}"),
+        HumanMessagePromptTemplate.from_template(
+            "Contesto:\n{context_str}\n\nDomanda: {question}"
+        ),
     ])
     return RetrievalQA.from_chain_type(
         llm=llm,
         chain_type="refine",
         retriever=retriever,
-        chain_type_kwargs={"prompt": prompt, "document_variable_name": "context"},
+        chain_type_kwargs={
+            "prompt": prompt,
+            "document_variable_name": "context_str",
+        },
     )
 
 
