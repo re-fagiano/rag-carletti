@@ -191,16 +191,16 @@ def build_rag(system_instruction: str) -> RetrievalQA:
 
     question_prompt = PromptTemplate(
         template=(
-            f"{system_instruction}\nContesto:\n{{context_str}}\n\nDomanda: {{question}}"
+            f"{system_instruction}\nContesto:\n{{context}}\n\nDomanda: {{question}}"
         ),
-        input_variables=["context_str", "question"],
+        input_variables=["context", "question"],
     )
 
     refine_prompt = PromptTemplate(
         template=(
-            f"{system_instruction}\n{{existing_answer}}\n\nContesto aggiuntivo:\n{{context_str}}\n\nDomanda: {{question}}"
+            f"{system_instruction}\n{{existing_answer}}\n\nContesto aggiuntivo:\n{{context}}\n\nDomanda: {{question}}"
         ),
-        input_variables=["existing_answer", "context_str", "question"],
+        input_variables=["existing_answer", "context", "question"],
     )
 
     return RetrievalQA.from_chain_type(
@@ -210,7 +210,7 @@ def build_rag(system_instruction: str) -> RetrievalQA:
         chain_type_kwargs={
             "question_prompt": question_prompt,
             "refine_prompt": refine_prompt,
-            "document_variable_name": "context_str",
+            "document_variable_name": "context",
         },
     )
 
