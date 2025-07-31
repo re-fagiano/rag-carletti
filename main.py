@@ -28,9 +28,11 @@ load_dotenv()
 # ────────────────────────────────────────────────────────────────────────────────
 app = FastAPI()
 
+
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
+
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -42,14 +44,20 @@ if not OPENAI_API_KEY:
 
 VECTORDB_PATH = "vectordb/"
 if not os.path.isdir(VECTORDB_PATH):
-    raise Exception(f"Directory '{VECTORDB_PATH}' non trovata. Ricrea o committa l'indice FAISS.")
+    raise Exception(
+        f"Directory '{VECTORDB_PATH}' non trovata. Ricrea o committa l'indice FAISS."
+    )
 
 try:
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
-    db = FAISS.load_local(VECTORDB_PATH, embeddings, allow_dangerous_deserialization=True)
-    retriever = db.as_retriever()
+    db = FAISS.load_local(
+        VECTORDB_PATH, embeddings, allow_dangerous_deserialization=True
+    )
+    retriever = db.as_retriever(search_kwargs={"k": 5})
 
-    llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0, openai_api_key=OPENAI_API_KEY)
+    llm = ChatOpenAI(
+        model_name="gpt-3.5-turbo", temperature=0, openai_api_key=OPENAI_API_KEY
+    )
 
     BASE_INSTRUCTION = (
         "Rispondi sempre in modo chiaro, tecnico, e senza ironia. "
@@ -78,7 +86,12 @@ TOOLTIPS = {
     "codici errore": "Serie di sigle usate per indicare malfunzionamenti tecnici.",
     "tastiera": "Interfaccia utente: pulsanti e manopole.",
     "programma": "Ciclo di lavaggio o asciugatura selezionato dall’utente.",
-    "inverter": "Tipo di motore elettronico a basso consumo."
+    "inverter": "Tipo di motore elettronico a basso consumo.",
+    "cuscinetto": "Componente meccanico che consente al tamburo di girare senza attrito.",
+    "contatti elettrici": "Punti di connessione che possono ossidarsi e interrompere il circuito.",
+    "tubo di carico": "Condotto che immette l’acqua nell’elettrodomestico.",
+    "tubo di scarico": "Condotto che espelle l’acqua dall’elettrodomestico.",
+    "guarnizione oblò": "Anello di gomma che assicura la tenuta dello sportello.",
 }
 
 # Elenco degli agenti disponibili nel progetto
@@ -116,7 +129,11 @@ AGENTS = [
             "Propone modelli su misura analizzando caratteristiche tecniche."
         ),
     },
-    {"id": 5, "nome": "Manutentore interno", "descrizione": "Gestione debug e problematiche"},
+    {
+        "id": 5,
+        "nome": "Manutentore interno",
+        "descrizione": "Gestione debug e problematiche",
+    },
 ]
 
 # Brevi presentazioni per ciascun agente
@@ -217,26 +234,57 @@ def build_rag(system_instruction: str) -> RetrievalQA:
 
 def applica_tooltip(testo: str) -> str:
     for chiave, spiegazione in TOOLTIPS.items():
-        pattern = r'(?<![\\w>])(' + re.escape(chiave) + r')(?![\\w<])'
+        pattern = r"(?<![\\w>])(" + re.escape(chiave) + r")(?![\\w<])"
         replacement = (
             r'<span class="tooltip">\1 <span class="info-icon">ⓘ</span>'
-            r'<span class="tooltiptext">' + spiegazione + r'</span>'
-            r'</span>'
+            r'<span class="tooltiptext">' + spiegazione + r"</span>"
+            r"</span>"
         )
         testo = re.sub(pattern, replacement, testo, flags=re.IGNORECASE)
     return testo
+
 
 def cerca_immagine_bing(query):
     if not BING_SEARCH_API_KEY:
         return ""
     headers = {"Ocp-Apim-Subscription-Key": BING_SEARCH_API_KEY}
     params = {"q": query, "count": 1, "imageType": "Photo"}
-    response = requests.get("https://api.bing.microsoft.com/v7.0/images/search", headers=headers, params=params)
+    response = requests.get(
+        "https://api.bing.microsoft.com/v7.0/images/search",
+        headers=headers,
+        params=params,
+    )
     try:
         results = response.json()
         return results["value"][0]["contentUrl"] if results["value"] else ""
     except Exception:
         return ""
+
+
+def classify_query(question: str) -> int:
+    q = question.lower()
+    if any(
+        w in q
+        for w in [
+            "errore",
+            "guasto",
+            "codice",
+            "non funziona",
+            "pompa",
+            "scheda",
+            "motore",
+        ]
+    ):
+        return 1  # Gustav
+    if any(w in q for w in ["pulizia", "manutenzione", "prodotto", "detergente"]):
+        return 2  # Yomo
+    if any(w in q for w in ["come usare", "consiglio d’uso", "trucchi", "ottimizzare"]):
+        return 3  # Jenna
+    if any(w in q for w in ["acquistare", "modello", "classe energetica"]):
+        return 4  # Liutprando
+    if any(w in q for w in ["debug", "diagnosi avanzata"]):
+        return 5  # Manutentore interno
+    return 1  # default a Gustav
 
 
 @app.post("/ask")
@@ -246,12 +294,15 @@ async def ask_question(request: Request):
         user_question = payload.get("query", "").strip()
 
         if not user_question:
-            raise HTTPException(status_code=422, detail="Inserisci il campo 'query' nel JSON")
+            raise HTTPException(
+                status_code=422, detail="Inserisci il campo 'query' nel JSON"
+            )
 
         # Recupera l'id dell'agente, accettando sia 'agent_id' che 'agent'
         agent_raw = payload.get("agent_id") or payload.get("agent")
-        agent_id = 1
-        if agent_raw is not None:
+        if agent_raw is None:
+            agent_id = classify_query(user_question)
+        else:
             try:
                 candidate = int(agent_raw)
                 if candidate not in AGENT_PROMPTS:
@@ -260,13 +311,21 @@ async def ask_question(request: Request):
             except (TypeError, ValueError):
                 if isinstance(agent_raw, str):
                     name = agent_raw.strip().lower()
-                    match = next((a["id"] for a in AGENTS if a["nome"].lower() == name), None)
+                    match = next(
+                        (a["id"] for a in AGENTS if a["nome"].lower() == name), None
+                    )
                     if match is not None:
                         agent_id = match
                     else:
-                        raise HTTPException(status_code=422, detail={"error": "Invalid agent", "agenti": AGENTS})
+                        raise HTTPException(
+                            status_code=422,
+                            detail={"error": "Invalid agent", "agenti": AGENTS},
+                        )
                 else:
-                    raise HTTPException(status_code=422, detail={"error": "Invalid agent", "agenti": AGENTS})
+                    raise HTTPException(
+                        status_code=422,
+                        detail={"error": "Invalid agent", "agenti": AGENTS},
+                    )
 
         logger.info(f"▶️ Ricevuta query: {user_question!r} per agente {agent_id}")
 
@@ -277,7 +336,14 @@ async def ask_question(request: Request):
             # Esempio: Jenna non deve usare la RAG se la domanda è fuori ambito
             if agent_id == 3 and any(
                 term in user_question.lower()
-                for term in ["errore", "pompa", "guasto", "non funziona", "codice", "sostituire"]
+                for term in [
+                    "errore",
+                    "pompa",
+                    "guasto",
+                    "non funziona",
+                    "codice",
+                    "sostituire",
+                ]
             ):
                 answer = (
                     "Jenna, l'assistente per utilizzare al meglio i tuoi elettrodomestici. "
@@ -289,9 +355,7 @@ async def ask_question(request: Request):
                 try:
                     answer = rag.run(user_question)
                 except AssertionError:
-                    msg = (
-                        "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
-                    )
+                    msg = "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
                     return JSONResponse(status_code=500, content={"error": msg})
 
         image_url = cerca_immagine_bing(user_question)
@@ -299,9 +363,7 @@ async def ask_question(request: Request):
         html_answer = applica_tooltip(html_answer)
 
         if image_url:
-            html_answer += (
-                f"<br><br><img src='{image_url}' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"
-            )
+            html_answer += f"<br><br><img src='{image_url}' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"
 
         return {"risposta": html_answer}
 
@@ -311,6 +373,7 @@ async def ask_question(request: Request):
         tb = traceback.format_exc()
         logger.error(f"❌ Errore interno durante /ask:\n{tb}")
         return JSONResponse(status_code=500, content={"error": tb})
+
 
 @app.get("/health")
 async def health():
