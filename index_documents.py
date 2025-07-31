@@ -1,8 +1,8 @@
 from dotenv import load_dotenv
-from langchain_openai import OpenAIEmbeddings # Modifica qui
+from langchain_openai import OpenAIEmbeddings  # Modifica qui
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import TextLoader, DirectoryLoader
-import os # Importa il modulo os
+import os  # Importa il modulo os
 
 # Se hai PDF, assicurati di avere PDFMinerLoader installato:
 # pip install langchain-community[pdf]
@@ -14,7 +14,9 @@ load_dotenv()
 # Questo è necessario per OpenAIEmbeddings
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
-    raise Exception("Devi impostare la variabile d'ambiente OPENAI_API_KEY per usare OpenAIEmbeddings.")
+    raise Exception(
+        "Devi impostare la variabile d'ambiente OPENAI_API_KEY per usare OpenAIEmbeddings."
+    )
 
 # 1) Carica tutti i file .txt in docs/ (ricorsivamente)
 txt_loader = DirectoryLoader("docs", glob="**/*.txt", loader_cls=TextLoader)
@@ -37,4 +39,9 @@ db = FAISS.from_documents(documents, embeddings)
 # 5) Salva il vector store (sovrascrive la vecchia versione)
 db.save_local("vectordb/")
 
-print("✅ Indicizzazione (con tutti i documenti) completata utilizzando OpenAIEmbeddings.")
+# Esempio di utilizzo:
+# retriever = db.as_retriever(search_kwargs={"k": 5})  # personalizza k se necessario
+
+print(
+    "✅ Indicizzazione (con tutti i documenti) completata utilizzando OpenAIEmbeddings."
+)
