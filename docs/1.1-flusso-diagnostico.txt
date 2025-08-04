@@ -1,0 +1,49 @@
+
+FLUSSO DIAGNOSTICO LAVATRICE
+
+Questo schema guida l’utente nella diagnosi dei problemi più comuni della lavatrice.  Per ogni risposta “sì”, seguire la guida indicata.
+
+```
+                       ┌─────────────┐
+                       │  Start      │
+                       └─────┬───────┘
+                             │
+               La lavatrice si accende?
+                        /   \
+                      no     sì
+                      /       \
+         Controlla alimentazione   La lavatrice carica acqua?
+                    [fine]             /      \
+                                      no       sì
+                                     /          \
+              Segui guida “Non carica acqua”     La lavatrice scarica?
+                                      |              /    \
+                                      |            no      sì
+                                      |           /          \
+                                   [fine]   Segui guida “Non scarica”
+                                                  |             \
+                                                  |         La lavatrice perde acqua?
+                                                  |                /    \
+                                                  |              sì      no
+                                                  |             /         \
+                                                  |  Segui guida “Perde acqua”  La lavatrice fa saltare la luce?
+                                                  |                              /   \
+                                                  |                            sì     no
+                                                  |                           /        \
+                                                  |      Segui guida “Fa saltare la luce”  La lavatrice vibra o fa rumore?
+                                                  |                                           /   \
+                                                  |                                         sì     no
+                                                  |                                        /         \
+                                                  |      Segui guida “Rumore/Vibrazioni”     Il ciclo non termina / non centrifuga?
+                                                  |                                                       /    \
+                                                  |                                                     sì      no
+                                                  |                                                    /         \
+                                                  |         Segui guida “Ciclo non termina/non centrifuga” La porta è bloccata?
+                                                  |                                                              /    \
+                                                  |                                                            sì     no
+                                                  |                                                           /        \
+                                                  |                     Segui guida “Porta bloccata”    Controlla codici errore
+                                                  |                                                                            
+```
+
+Il flusso può essere rappresentato anche come immagine e integrato nell’interfaccia per aiutare l’utente a individuare rapidamente il problema.

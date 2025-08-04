@@ -1,0 +1,30 @@
+
+CICLO NON TERMINA / NON CENTRIFUGA
+
+Se il bucato esce ancora bagnato o la lavatrice si ferma prima della centrifuga, diverse cause possono impedire la rotazione del cestello.  Le guide tecniche elencano un elenco di cause tipichehttps://www.sos-ricambi.it/lavatrice-non-centrifuga-cause.html#:~:text=I%20tuoi%20vestiti%20escono%20bagnati,centrifuga%20correttamente%20il%20tuo%20bucato; qui sono riassunte con i relativi controlli.
+
+## Cause comuni e controlli
+
+1. **Alimentazione difettosa** – Verificare che la lavatrice sia alimentata: controllare la presa, eventuali interruttori o salvavita e provare a scollegare e ricollegare l’apparecchiohttps://www.sos-ricambi.it/lavatrice-non-centrifuga-cause.html#:~:text=I%20tuoi%20vestiti%20escono%20bagnati,centrifuga%20correttamente%20il%20tuo%20bucato.
+
+2. **Carico sbilanciato** – Un carico distribuito male fa intervenire il sensore di bilanciamento che interrompe la centrifugahttps://www.sos-ricambi.it/lavatrice-non-centrifuga-cause.html#:~:text=Il%20bucato%20ha%20causato%20uno,squilibrio.  Ridistribuire il bucato o ridurre la quantità di capi assorbenti.
+
+3. **Troppa schiuma** – Un sovradosaggio di detersivo o l’uso di detergenti troppo schiumosi può impedire la centrifugahttps://www.sos-ricambi.it/lavatrice-non-centrifuga-cause.html#:~:text=C%27%C3%A8%20troppa%20schiuma%20durante%20la,centrifuga.  Ridurre la quantità di detersivo, soprattutto in zone con acqua dolce.
+
+4. **Pompa o filtro di scarico ostruiti** – Se la pompa di scarico o il filtro sono intasati, l’acqua non viene evacuata e la centrifuga non partehttps://www.sos-ricambi.it/lavatrice-non-centrifuga-cause.html#:~:text=La%20pompa%20o%20il%20filtro,di%20scarico%20sono%20ostruiti.  Pulire filtro e pompa e verificare che l’elica giri liberamente.
+
+5. **Tubo di scarico ostruito** – Il manicotto tra vasca e pompa può accumulare calze o monete, impedendo lo scaricohttps://www.sos-ricambi.it/lavatrice-non-centrifuga-cause.html#:~:text=Il%20tubo%20di%20scarico%20%C3%A8,ostruito.  Smontare e pulire il tubo o sostituirlo se danneggiato.
+
+6. **Cinghia fuori asse o rotta** – La cinghia collega il motore alla puleggia del tamburo.  Se rotta o allentata il cestello non girahttps://www.sos-ricambi.it/lavatrice-non-centrifuga-cause.html#:~:text=La%20cinghia%20%C3%A8%20fuori%20asse,o%20rotta.  Riposizionarla o sostituirla.
+
+7. **Pressostato difettoso** – Il pressostato controlla il livello dell’acqua; se invia informazioni errate la centrifuga non partehttps://www.sos-ricambi.it/lavatrice-non-centrifuga-cause.html#:~:text=Il%20pressostato%20non%20funziona%20correttamente.  Pulire la camera di compressione e testare il pressostato con il multimetro, sostituendolo se necessario.
+
+8. **Carboncini del motore usurati** – Nei motori universali i carboncini (spazzole) trasmettono corrente all’armatura; se consumati il motore non raggiunge la velocità di centrifugahttps://www.sos-ricambi.it/lavatrice-non-centrifuga-cause.html#:~:text=I%20carboncini%20del%20motore%20sono,usurati.  Controllare e sostituire i carboncini.
+
+9. **Sicurezza della porta difettosa** – Se il dispositivo di blocco dell’oblò non segnala la chiusura correttamente, la centrifuga non partehttps://www.sos-ricambi.it/lavatrice-non-centrifuga-cause.html#:~:text=%2A%20,porta%20non%20funziona%20correttamente.  Controllare la serratura e il relativo connettore.
+
+10. **Elettrovalvola bloccata / Resistenza in dispersione** – Un’elettrovalvola che rimane aperta o una resistenza che presenta dispersione possono impedire il passaggio alla centrifugahttps://www.sos-ricambi.it/lavatrice-non-centrifuga-cause.html#:~:text=%2A%20,aperta.  Testare i componenti con il multimetro.
+
+11. **Scheda elettronica difettosa** – Se tutti gli altri componenti sono in ordine, il problema potrebbe essere la scheda elettronicahttps://www.sos-ricambi.it/lavatrice-non-centrifuga-cause.html#:~:text=%2A%20,aperta.  In caso di guasto conviene farla testare da un tecnico o sostituirla.
+
+Seguendo questi controlli si può identificare la causa e procedere alla sostituzione o alla riparazione del componente difettoso.

@@ -1,0 +1,22 @@
+
+PORTA BLOCCATA
+
+Quando l’oblò della lavatrice non si apre alla fine del programma, occorre individuare la causa senza forzare inutilmente la serratura.  Le principali cause e rimedi riportate nelle guide tecniche sono riepilogate di seguitohttps://www.sos-ricambi.it/oblo-lavatrice-non-si-apre.html#:~:text=La%20maniglia%20della%20porta%20%C3%A8,bloccata%20o%20rotta.
+
+## Cause possibili e procedure
+
+1. **Maniglia bloccata o rotta** – La maniglia aziona il gancio che disinnesta la serratura.  Se è danneggiata, lo sportello non si apre.  Un metodo di emergenza consiste nel far passare una corda o un fil di ferro attorno all’oblò, tra la guarnizione e il telaio, e tirare verso di sé entrambe le estremità per sganciare il ganciohttps://www.sos-ricambi.it/oblo-lavatrice-non-si-apre.html#:~:text=danneggiati%2C%20lo%20sportello%20non%20potr%C3%A0,individuare%20quelli%20che%20ostacolano%20l%E2%80%99apertura.  Dopo l’apertura sostituire maniglia o meccanismo.
+
+2. **Serratura dello sportello difettosa** – La serratura blocca l’oblò durante il lavaggio.  Se è guasta o ossidata la porta resta bloccatahttps://www.sos-ricambi.it/oblo-lavatrice-non-si-apre.html#:~:text=La%C2%A0serratura%20dello%C2%A0sportello%C2%A0%C3%A8%20danneggiata.  Verificare visivamente la serratura e il cablaggio; se necessario sostituirli.
+
+3. **Filtro o pompa di scarico intasati** – Se l’acqua non viene evacuata, la porta rimane chiusa per sicurezza.  In presenza di acqua residua, scollegare l’apparecchio, svuotare la vasca utilizzando il filtro di scarico e pulire sia filtro che pompahttps://www.sos-ricambi.it/oblo-lavatrice-non-si-apre.html#:~:text=Il%20filtro%20o%20la%20pompa,di%20scarico%20sono%20intasati.
+
+4. **Sensore di temperatura (NTC) difettoso** – Il sensore NTC informa la scheda sulla temperatura dell’acqua; se è fuori tolleranza, la macchina può impedire l’apertura dello sportellohttps://www.sos-ricambi.it/oblo-lavatrice-non-si-apre.html#:~:text=,sar%C3%A0%20necessario%20sostituire%20il%20sensore.  Misurare la resistenza del sensore (circa 20–30 kΩ a temperatura ambiente); se il valore è nullo o fuori range va sostituito.
+
+5. **Pressostato difettoso** – Un pressostato guasto indica alla macchina un livello d’acqua errato e impedisce lo sbloccohttps://www.sos-ricambi.it/oblo-lavatrice-non-si-apre.html#:~:text=Il%20pressostato%20%C3%A8%20difettoso.  Pulire la camera di compressione collegata al pressostato; se il problema persiste testare il componente con il multimetro e sostituirlo.
+
+6. **Codice di errore attivo** – Molte lavatrici impediscono l’apertura se è presente un codice di errore o un led lampeggiantehttps://www.sos-ricambi.it/oblo-lavatrice-non-si-apre.html#:~:text=%5BImage%208%3A%20code,verificare%20a%20quale%20malfunzionamento%20corrispondano.  Prendere nota del codice e consultare la tabella dei malfunzionamenti nel manuale dei codici.
+
+7. **Scheda elettronica guasta** – Qualora tutti i componenti precedenti siano in ordine, la scheda di controllo potrebbe essere difettosahttps://www.sos-ricambi.it/oblo-lavatrice-non-si-apre.html#:~:text=La%20scheda%20elettronica%20%C3%A8%20difettosa.  In questo caso è consigliabile affidarsi a un tecnico per la riparazione o la sostituzione.
+
+**Nota di sicurezza:** prima di intervenire scollegare sempre la lavatrice dall’alimentazione e attendere alcuni minuti; alcuni modelli rimangono bloccati per qualche minuto dopo la fine del ciclo per consentire il raffreddamento delle resistenze.

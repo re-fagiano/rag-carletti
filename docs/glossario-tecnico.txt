@@ -1,0 +1,19 @@
+
+GLOSSARIO TECNICO
+
+Questo glossario spiega alcuni termini tecnici ricorrenti nelle guide.
+
+| Termine         | Descrizione |
+|-----------------|-------------|
+| **Tramoggia**   | È il convogliatore (o cassetto) che porta acqua e detersivo dalla vaschetta alla vasca.  Se ostruita può impedire il carico dell’acqua. |
+| **Pressostato** | Dispositivo che misura la pressione dell’aria in una camera di compressione per determinare il livello dell’acqua.  Se difettoso, la lavatrice può non caricare, non centrifugare o non aprire l’oblò. |
+| **Elettrovalvola** | Valvola comandata elettricamente che apre o chiude l’ingresso dell’acqua.  Le bobine possono essere testate in ohm e alimentate a 230 V; una bobina interrotta o bloccata impedisce il riempimento. |
+| **NTC (Negative Temperature Coefficient)** | Sensore di temperatura che varia la resistenza elettrica in base alla temperatura.  Nei modelli comuni misura 20–30 kΩ a temperatura ambiente; valori fuori range indicano guasto. |
+| **Pompa di scarico** | Motore che evacua l’acqua dalla vasca verso lo scarico.  Può essere ostruito da lanugine o oggetti; quando è guasto impedisce lo scarico e la centrifuga. |
+| **Ammortizzatore** | Elemento che assorbe le vibrazioni del gruppo vasca durante la centrifuga.  Se usurato, la lavatrice vibra e si muove. |
+| **Contrappeso** | Pesi in cemento o ghisa fissati alla vasca per bilanciare il cestello.  Se allentati o rotti provocano forti colpi durante la centrifuga. |
+| **Cuscinetti**   | Supporti a sfere che permettono al cestello di ruotare.  Quando sono usurati producono rumori metallici e possono causare perdite. |
+| **Tachimetro/tachimetrica** | Sensore montato sul motore che misura la velocità di rotazione.  Un guasto può impedire alla lavatrice di modulare correttamente la centrifuga. |
+| **Fermo di trasporto** | Bullone usato per bloccare il cestello durante il trasporto.  Deve essere rimosso prima dell’utilizzo; in caso contrario causa vibrazioni e rumori. |
+
+L’agente può usare questo glossario per aggiungere tooltip alle risposte tecniche e linkare immagini esplicative provenienti dal repository (esplosi e manuali).
