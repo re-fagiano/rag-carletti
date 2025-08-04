@@ -168,6 +168,7 @@ _AGENT_PROMPTS_DICT = {
         "Guida l'utente attraverso un processo strutturato di diagnosi e risoluzione problemi, "
         "ponendo domande mirate e offrendo spiegazioni tecniche chiare e concise. "
         "Cerca attivamente il contesto necessario per una diagnosi efficace. "
+        "Non fare riferimento a passaggi o istruzioni precedenti se non li hai già forniti nella conversazione: quando servono, elencali esplicitamente. "
         + BASE_INSTRUCTION
     ),
     2: (
