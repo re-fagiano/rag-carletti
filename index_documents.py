@@ -18,6 +18,9 @@ if not OPENAI_API_KEY:
         "Devi impostare la variabile d'ambiente OPENAI_API_KEY per usare OpenAIEmbeddings."
     )
 
+# Modello di embedding configurabile tramite variabile d'ambiente
+EMBED_MODEL = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-large")
+
 # 1) Carica tutti i file .txt in docs/ (ricorsivamente)
 txt_loader = DirectoryLoader("docs", glob="**/*.txt", loader_cls=TextLoader)
 
@@ -31,7 +34,9 @@ documents = txt_loader.load()
 
 # 3) Scegli l’embedding di OpenAI
 # Modifica qui: usa OpenAIEmbeddings
-embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+embeddings = OpenAIEmbeddings(
+    model=EMBED_MODEL, openai_api_key=OPENAI_API_KEY
+)
 
 # 4) Crea (o ricrea) il database FAISS
 db = FAISS.from_documents(documents, embeddings)
@@ -43,5 +48,5 @@ db.save_local("vectordb/")
 # retriever = db.as_retriever(search_kwargs={"k": 5})  # personalizza k se necessario
 
 print(
-    "✅ Indicizzazione (con tutti i documenti) completata utilizzando OpenAIEmbeddings."
+    f"✅ Indicizzazione completata utilizzando il modello di embedding '{EMBED_MODEL}'."
 )

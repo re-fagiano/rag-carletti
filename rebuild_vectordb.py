@@ -11,6 +11,9 @@ load_dotenv()
 # Leggi chiave
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
+# Modello di embedding configurabile tramite variabile d'ambiente
+EMBED_MODEL = os.getenv("OPENAI_EMBED_MODEL", "text-embedding-3-large")
+
 # Prepara documenti
 docs = []
 for file in Path("docs/").rglob("*.txt"):
@@ -18,7 +21,9 @@ for file in Path("docs/").rglob("*.txt"):
     docs.append(Document(page_content=text, metadata={"source": str(file)}))
 
 # Embeddings e FAISS
-embeddings = OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_API_KEY"))
+embeddings = OpenAIEmbeddings(
+    model=EMBED_MODEL, openai_api_key=os.getenv("OPENAI_API_KEY")
+)
 faiss_db = FAISS.from_documents(docs, embeddings)
 faiss_db.save_local("vectordb/")
-print("✅ Indice FAISS (dim=1536) ricostruito correttamente.")
+print(f"✅ Indice FAISS ricostruito con il modello {EMBED_MODEL}.")
