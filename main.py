@@ -56,7 +56,9 @@ try:
     retriever = db.as_retriever(search_kwargs={"k": 5})
 
     llm = ChatOpenAI(
-        model_name="gpt-3.5-turbo", temperature=0, openai_api_key=OPENAI_API_KEY
+        model_name=os.getenv("OPENAI_MODEL", "gpt-5"),
+        temperature=0,
+        openai_api_key=OPENAI_API_KEY,
     )
 
     BASE_INSTRUCTION = (
