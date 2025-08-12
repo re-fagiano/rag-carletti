@@ -31,10 +31,12 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    ```
 
 2. **Variabili d'ambiente**
-   Imposta almeno la chiave di OpenAI prima di avviare l'applicazione:
+   Imposta almeno la chiave di OpenAI prima di avviare l'applicazione. È possibile
+   specificare un modello diverso tramite la variabile `OPENAI_MODEL` (predefinito `gpt-5`):
    ```bash
    export OPENAI_API_KEY=<la tua chiave>
    export BING_SEARCH_API_KEY=<opzionale per immagini>
+   export OPENAI_MODEL=<modello opzionale>
    ```
 
 3. **Avvio dell'applicazione**
@@ -49,7 +51,8 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
 # build image
 docker build -t rag-carletti .
 # esegui l'app
-docker run -p 8000:8000 -e OPENAI_API_KEY=<la tua chiave> rag-carletti
+docker run -p 8000:8000 -e OPENAI_API_KEY=<la tua chiave> \
+    -e OPENAI_MODEL=<modello opzionale> rag-carletti
 ```
 
 ## Endpoint /ask
