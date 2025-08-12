@@ -2,6 +2,7 @@ import logging
 import traceback
 import os
 import re
+import asyncio
 import requests
 from types import MappingProxyType
 from fastapi import FastAPI, Request, HTTPException
@@ -38,6 +39,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
+ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
 
 if not OPENAI_API_KEY:
     raise Exception("Devi impostare la variabile d'ambiente OPENAI_API_KEY")
@@ -259,21 +261,25 @@ def applica_tooltip(testo: str) -> str:
     return testo
 
 
-def cerca_immagine_bing(query):
-    if not BING_SEARCH_API_KEY:
+async def cerca_immagine_bing(query: str, image_requested: bool = True) -> str:
+    if not image_requested or not ENABLE_IMAGE_SEARCH or not BING_SEARCH_API_KEY:
         return ""
-    headers = {"Ocp-Apim-Subscription-Key": BING_SEARCH_API_KEY}
-    params = {"q": query, "count": 1, "imageType": "Photo"}
-    response = requests.get(
-        "https://api.bing.microsoft.com/v7.0/images/search",
-        headers=headers,
-        params=params,
-    )
-    try:
-        results = response.json()
-        return results["value"][0]["contentUrl"] if results["value"] else ""
-    except Exception:
-        return ""
+
+    def _search() -> str:
+        headers = {"Ocp-Apim-Subscription-Key": BING_SEARCH_API_KEY}
+        params = {"q": query, "count": 1, "imageType": "Photo"}
+        response = requests.get(
+            "https://api.bing.microsoft.com/v7.0/images/search",
+            headers=headers,
+            params=params,
+        )
+        try:
+            results = response.json()
+            return results["value"][0]["contentUrl"] if results["value"] else ""
+        except Exception:
+            return ""
+
+    return await asyncio.to_thread(_search)
 
 
 def classify_query(question: str) -> int:
@@ -304,6 +310,7 @@ def classify_query(question: str) -> int:
 
 @app.post("/ask")
 async def ask_question(request: Request):
+    image_task = None
     try:
         payload = await request.json()
         user_question = payload.get("query", "").strip()
@@ -342,6 +349,9 @@ async def ask_question(request: Request):
                         detail={"error": "Invalid agent", "agenti": AGENTS},
                     )
 
+        include_image = bool(payload.get("include_image", True))
+        image_task = asyncio.create_task(cerca_immagine_bing(user_question, include_image))
+
         logger.info(f"▶️ Ricevuta query: {user_question!r} per agente {agent_id}")
 
         # Gestisce la richiesta di introduzione senza invocare la RAG
@@ -370,10 +380,11 @@ async def ask_question(request: Request):
                 try:
                     answer = rag.run(user_question)
                 except AssertionError:
+                    await image_task
                     msg = "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
                     return JSONResponse(status_code=500, content={"error": msg})
 
-        image_url = cerca_immagine_bing(user_question)
+        image_url = await image_task
         html_answer = answer.replace("\n", "<br>")
         html_answer = applica_tooltip(html_answer)
 
@@ -388,6 +399,9 @@ async def ask_question(request: Request):
         tb = traceback.format_exc()
         logger.error(f"❌ Errore interno durante /ask:\n{tb}")
         return JSONResponse(status_code=500, content={"error": tb})
+    finally:
+        if image_task is not None and not image_task.done():
+            await image_task
 
 
 @app.get("/health")
