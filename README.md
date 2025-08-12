@@ -35,6 +35,7 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    ```bash
    export OPENAI_API_KEY=<la tua chiave>
    export BING_SEARCH_API_KEY=<opzionale per immagini>
+   export OPENAI_EMBED_MODEL=text-embedding-3-large  # opzionale
    ```
 
 3. **Avvio dell'applicazione**
@@ -70,7 +71,7 @@ curl -X POST http://localhost:8000/ask \
 
 Se modifichi o aggiungi file nella cartella `docs/` devi rigenerare la cartella `vectordb/` per riflettere i nuovi contenuti.
 
-Puoi utilizzare uno dei seguenti script (richiedono entrambi la variabile d'ambiente `OPENAI_API_KEY` impostata):
+Puoi utilizzare uno dei seguenti script (richiedono la variabile d'ambiente `OPENAI_API_KEY` e, facoltativamente, `OPENAI_EMBED_MODEL` per scegliere il modello di embedding, predefinito `text-embedding-3-large`):
 
 ```bash
 python index_documents.py      # indicizza tutti i documenti
