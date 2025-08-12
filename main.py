@@ -72,6 +72,36 @@ except Exception:
     logger.exception("❌ Errore durante l'inizializzazione della pipeline RAG:")
     raise
 
+
+def build_rag(system_instruction: str) -> RetrievalQA:
+    """Crea una catena RAG con il prompt fornito."""
+
+    question_prompt = PromptTemplate(
+        template=(
+            f"{system_instruction}\nContesto:\n{{context}}\n\nDomanda: {{question}}"
+        ),
+        input_variables=["context", "question"],
+    )
+
+    refine_prompt = PromptTemplate(
+        template=(
+            f"{system_instruction}\n{{existing_answer}}\n\nContesto aggiuntivo:\n{{context}}\n\nDomanda: {{question}}"
+        ),
+        input_variables=["existing_answer", "context", "question"],
+    )
+
+    return RetrievalQA.from_chain_type(
+        llm=llm,
+        chain_type="refine",
+        retriever=retriever,
+        chain_type_kwargs={
+            "question_prompt": question_prompt,
+            "refine_prompt": refine_prompt,
+            "document_variable_name": "context",
+        },
+    )
+
+
 TOOLTIPS = {
     "filtro": "Componente da pulire regolarmente per evitare intasamenti e cattivi odori.",
     "filtri": "Componenti da pulire regolarmente per evitare intasamenti e cattivi odori.",
@@ -217,35 +247,7 @@ _AGENT_PROMPTS_DICT = {
 
 AGENT_PROMPTS = MappingProxyType(_AGENT_PROMPTS_DICT)
 
-
-def build_rag(system_instruction: str) -> RetrievalQA:
-    """Crea una catena RAG con il prompt fornito."""
-
-    question_prompt = PromptTemplate(
-        template=(
-            f"{system_instruction}\nContesto:\n{{context}}\n\nDomanda: {{question}}"
-        ),
-        input_variables=["context", "question"],
-    )
-
-    refine_prompt = PromptTemplate(
-        template=(
-            f"{system_instruction}\n{{existing_answer}}\n\nContesto aggiuntivo:\n{{context}}\n\nDomanda: {{question}}"
-        ),
-        input_variables=["existing_answer", "context", "question"],
-    )
-
-    return RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type="refine",
-        retriever=retriever,
-        chain_type_kwargs={
-            "question_prompt": question_prompt,
-            "refine_prompt": refine_prompt,
-            "document_variable_name": "context",
-        },
-    )
-
+RAG_CHAINS = {id: build_rag(prompt) for id, prompt in AGENT_PROMPTS.items()}
 
 def applica_tooltip(testo: str) -> str:
     for chiave, spiegazione in TOOLTIPS.items():
@@ -366,7 +368,7 @@ async def ask_question(request: Request):
                     "Per assistenza su guasti o riparazioni, chiedi a Gustav, il tecnico esperto."
                 )
             else:
-                rag = build_rag(AGENT_PROMPTS[agent_id])
+                rag = RAG_CHAINS[agent_id]
                 try:
                     answer = rag.run(user_question)
                 except AssertionError:
