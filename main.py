@@ -14,6 +14,7 @@ from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
+from langchain.memory import ConversationBufferMemory
 from dotenv import load_dotenv
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -36,6 +37,8 @@ async def root():
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+CONVERSATIONS: dict[str, ConversationBufferMemory] = {}
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
@@ -316,6 +319,10 @@ async def ask_question(request: Request):
     try:
         payload = await request.json()
         user_question = payload.get("query", "").strip()
+        session_id = payload.get("session_id", "default")
+        memory = CONVERSATIONS.setdefault(
+            session_id, ConversationBufferMemory(return_messages=False)
+        )
 
         if not user_question:
             raise HTTPException(
@@ -356,6 +363,19 @@ async def ask_question(request: Request):
 
         logger.info(f"▶️ Ricevuta query: {user_question!r} per agente {agent_id}")
 
+        # Sintesi delle interazioni precedenti
+        if memory.buffer:
+            try:
+                summary_prompt = (
+                    "Riassumi brevemente i punti chiave delle seguenti interazioni, in italiano:\n"
+                    f"{memory.buffer}"
+                )
+                summary = await llm.apredict(summary_prompt)
+            except Exception:
+                summary = "Impossibile generare la sintesi."
+        else:
+            summary = "Nessuna interazione precedente."
+
         # Gestisce la richiesta di introduzione senza invocare la RAG
         if user_question.lower() == "introduzione":
             answer = AGENT_INTROS[agent_id]
@@ -380,15 +400,24 @@ async def ask_question(request: Request):
             else:
                 rag = RAG_CHAINS[agent_id]
                 try:
-                    answer = await rag.arun(user_question)
+                    question_with_context = (
+                        f"{memory.buffer}\nUtente: {user_question}" if memory.buffer else user_question
+                    )
+                    answer = await rag.arun(question_with_context)
                 except AssertionError:
                     await image_task
                     msg = "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
                     return JSONResponse(status_code=500, content={"error": msg})
 
+        # Aggiorna la memoria con l'interazione corrente
+        memory.chat_memory.add_user_message(user_question)
+        memory.chat_memory.add_ai_message(answer)
+
         image_url = await image_task
         html_answer = answer.replace("\n", "<br>")
         html_answer = applica_tooltip(html_answer)
+        summary_html = applica_tooltip(summary.replace("\n", "<br>"))
+        html_answer = f"<b>Sintesi conversazione:</b> {summary_html}<br><br>{html_answer}"
 
         if image_url:
             html_answer += f"<br><br><img src='{image_url}' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"
