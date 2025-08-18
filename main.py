@@ -58,7 +58,8 @@ try:
     db = FAISS.load_local(
         VECTORDB_PATH, embeddings, allow_dangerous_deserialization=True
     )
-    retriever = db.as_retriever(search_kwargs={"k": 5})
+    RETRIEVER_K = int(os.getenv("RETRIEVER_K", "3"))
+    retriever = db.as_retriever(search_kwargs={"k": RETRIEVER_K})
 
     llm = ChatOpenAI(
         model_name=os.getenv("OPENAI_MODEL", "gpt-5"),
@@ -226,27 +227,19 @@ AGENT_PROMPTS = MappingProxyType(_AGENT_PROMPTS_DICT)
 def build_rag(system_instruction: str) -> RetrievalQA:
     """Crea una catena RAG con il prompt fornito."""
 
-    question_prompt = PromptTemplate(
+    prompt = PromptTemplate(
         template=(
             f"{system_instruction}\nContesto:\n{{context}}\n\nDomanda: {{question}}"
         ),
         input_variables=["context", "question"],
     )
 
-    refine_prompt = PromptTemplate(
-        template=(
-            f"{system_instruction}\n{{existing_answer}}\n\nContesto aggiuntivo:\n{{context}}\n\nDomanda: {{question}}"
-        ),
-        input_variables=["existing_answer", "context", "question"],
-    )
-
     return RetrievalQA.from_chain_type(
         llm=llm,
-        chain_type="refine",
+        chain_type="stuff",
         retriever=retriever,
         chain_type_kwargs={
-            "question_prompt": question_prompt,
-            "refine_prompt": refine_prompt,
+            "prompt": prompt,
             "document_variable_name": "context",
         },
     )
