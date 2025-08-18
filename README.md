@@ -38,6 +38,7 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    export BING_SEARCH_API_KEY=<opzionale per immagini>
    export OPENAI_MODEL=<modello opzionale>
    export ENABLE_IMAGE_SEARCH=true  # disabilita con false
+   export RETRIEVER_K=3  # documenti da recuperare (default 3)
    ```
 
 3. **Avvio dell'applicazione**
