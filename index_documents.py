@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings  # Modifica qui
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import TextLoader, DirectoryLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os  # Importa il modulo os
 
 # Se hai PDF, assicurati di avere PDFMinerLoader installato:
@@ -29,12 +30,18 @@ txt_loader = DirectoryLoader("docs", glob="**/*.txt", loader_cls=TextLoader)
 # Se ti bastano solo .txt, usa:
 documents = txt_loader.load()
 
+# Suddivide i documenti in chunk gestibili
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=800, chunk_overlap=150
+)
+split_docs = text_splitter.split_documents(documents)
+
 # 3) Scegli l’embedding di OpenAI
 # Modifica qui: usa OpenAIEmbeddings
 embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
-# 4) Crea (o ricrea) il database FAISS
-db = FAISS.from_documents(documents, embeddings)
+# 4) Crea (o ricrea) il database FAISS sui chunk
+db = FAISS.from_documents(split_docs, embeddings)
 
 # 5) Salva il vector store (sovrascrive la vecchia versione)
 db.save_local("vectordb/")
