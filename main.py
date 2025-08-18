@@ -66,7 +66,8 @@ try:
     BASE_INSTRUCTION = (
         "Rispondi sempre in modo chiaro, tecnico, e senza ironia. "
         "Non aggiungere battute, frasi umoristiche o riferimenti surreali. Concentrati solo sulla risoluzione del problema. "
-        "Se rilevi termini tecnici, formattali con i tooltip. Se opportuno, includi un'immagine rilevante tramite Bing."
+        "Se rilevi termini tecnici, formattali con i tooltip. Se opportuno, includi un'immagine rilevante tramite Bing. "
+        "Limita la risposta a tre frasi o a un elenco puntato conciso."
     )
 
     logger.info("✅ Ambiente base inizializzato correttamente.")
