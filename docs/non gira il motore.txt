@@ -1,0 +1,6 @@
+se la lavatrice inizializza il programma: chiusura-scarico-carico ma il motore non gira
+verificare che la macchina scarichi correttamente
+verificare che arrivi corrente (220v) alla scheda inverter
+verificare che il motore venga alimentato (3 fasi continue da 110v-)
+
+i contatti del motore (3) devono essere in continuità tra loro, con basso valore ohmico degli avvolgimenti

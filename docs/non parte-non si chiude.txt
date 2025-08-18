@@ -1,0 +1,6 @@
+la lavatrice si accende e tramite la scheda si puo preparare la programmazione, ma una volta chiuso l'oblò e premuto avvio la macchina non parte
+
+si sente il rumore (meccanico del blocco) ma l'oblò non si blocca: elettroserratura difettosa - gancio oblò rotto - la scheda non riesce ad alimentare correttamente la serratura, cablaggio scheda serratura interrotto
+si sente il rumore (bip elettrico scheda comandi) ma l'oblò non si blocca: scheda non alimenta\difettosa, blocco bambini , elettroserratura elettricamente difettosa , cablaggio scheda serratura interrotto
+non succede niente: gancio oblò mancante\rotto, scheda comandi\main difettosa (non inizializza il programma), elettroserratura interrotta\rotta meccanicamente, cablaggio scheda serratura interrotto
+blocco bambini attivato: disattivare blocco bambini
