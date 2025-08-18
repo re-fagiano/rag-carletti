@@ -40,7 +40,7 @@ db = FAISS.from_documents(documents, embeddings)
 db.save_local("vectordb/")
 
 # Esempio di utilizzo:
-# retriever = db.as_retriever(search_kwargs={"k": 5})  # personalizza k se necessario
+# retriever = db.as_retriever(search_kwargs={"k": 3})  # personalizza k se necessario
 
 print(
     "✅ Indicizzazione (con tutti i documenti) completata utilizzando OpenAIEmbeddings."

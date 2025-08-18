@@ -55,7 +55,9 @@ try:
     db = FAISS.load_local(
         VECTORDB_PATH, embeddings, allow_dangerous_deserialization=True
     )
-    retriever = db.as_retriever(search_kwargs={"k": 5})
+
+    retriever_k = int(os.getenv("RETRIEVER_K", "3"))
+    retriever = db.as_retriever(search_kwargs={"k": retriever_k})
 
     llm = ChatOpenAI(
         model_name=os.getenv("OPENAI_MODEL", "gpt-5"),
