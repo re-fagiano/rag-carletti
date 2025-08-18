@@ -37,7 +37,7 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    export OPENAI_API_KEY=<la tua chiave>
    export BING_SEARCH_API_KEY=<opzionale per immagini>
    export OPENAI_MODEL=<modello opzionale>
-   export ENABLE_IMAGE_SEARCH=true  # disabilita con false
+   export ENABLE_IMAGE_SEARCH=true  # abilita la ricerca immagini
    ```
 
 3. **Avvio dell'applicazione**
@@ -59,7 +59,7 @@ docker run -p 8000:8000 -e OPENAI_API_KEY=<la tua chiave> \
 ## Endpoint /ask
 L'endpoint accetta il campo JSON `query` e, opzionalmente, `agent_id` (o `agent`) per scegliere quale agente deve rispondere. Se il parametro è assente verrà usato Gustav (id `1`). È possibile indicare l'id numerico o il nome dell'agente (non viene fatta distinzione tra maiuscole e minuscole). Se il valore non è riconosciuto l'API restituisce errore `422`. L'elenco completo degli agenti è consultabile con `GET /agents`.
 
-La ricerca immagini tramite Bing può essere disabilitata globalmente impostando la variabile d'ambiente `ENABLE_IMAGE_SEARCH=false` oppure per singola richiesta passando `"include_image": false` nel payload.
+La ricerca immagini tramite Bing è disabilitata di default. Puoi abilitarla globalmente impostando la variabile d'ambiente `ENABLE_IMAGE_SEARCH=true` oppure per singola richiesta passando `"include_image": true` nel payload.
 
 Esempi di richiesta:
 ```bash
@@ -69,7 +69,7 @@ curl -X POST http://localhost:8000/ask \
 
 curl -X POST http://localhost:8000/ask \
      -H 'Content-Type: application/json' \
-     -d '{"query": "Consigli per la manutenzione", "agent": "yomo", "include_image": false}'
+     -d '{"query": "Consigli per la manutenzione", "agent": "yomo", "include_image": true}'
 ```
 
 ## Aggiornamento dell'indice dei documenti

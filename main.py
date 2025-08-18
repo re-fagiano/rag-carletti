@@ -39,7 +39,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
-ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
+ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "false").lower() == "true"
 
 if not OPENAI_API_KEY:
     raise Exception("Devi impostare la variabile d'ambiente OPENAI_API_KEY")
@@ -349,8 +349,9 @@ async def ask_question(request: Request):
                         detail={"error": "Invalid agent", "agenti": AGENTS},
                     )
 
-        include_image = bool(payload.get("include_image", True))
-        image_task = asyncio.create_task(cerca_immagine_bing(user_question, include_image))
+        include_image = bool(payload.get("include_image", False))
+        if include_image:
+            image_task = asyncio.create_task(cerca_immagine_bing(user_question, True))
 
         logger.info(f"▶️ Ricevuta query: {user_question!r} per agente {agent_id}")
 
@@ -380,11 +381,12 @@ async def ask_question(request: Request):
                 try:
                     answer = rag.run(user_question)
                 except AssertionError:
-                    await image_task
+                    if image_task:
+                        await image_task
                     msg = "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
                     return JSONResponse(status_code=500, content={"error": msg})
 
-        image_url = await image_task
+        image_url = await image_task if image_task else ""
         html_answer = answer.replace("\n", "<br>")
         html_answer = applica_tooltip(html_answer)
 
