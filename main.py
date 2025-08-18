@@ -248,6 +248,8 @@ def build_rag(system_instruction: str) -> RetrievalQA:
         },
     )
 
+# Costruisce le catene RAG per ogni agente all'avvio dell'app
+RAG_CHAINS = {agent_id: build_rag(prompt) for agent_id, prompt in AGENT_PROMPTS.items()}
 
 def applica_tooltip(testo: str) -> str:
     for chiave, spiegazione in TOOLTIPS.items():
@@ -376,9 +378,9 @@ async def ask_question(request: Request):
                     "Per assistenza su guasti o riparazioni, chiedi a Gustav, il tecnico esperto."
                 )
             else:
-                rag = build_rag(AGENT_PROMPTS[agent_id])
+                rag = RAG_CHAINS[agent_id]
                 try:
-                    answer = rag.run(user_question)
+                    answer = await rag.arun(user_question)
                 except AssertionError:
                     await image_task
                     msg = "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
