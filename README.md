@@ -28,6 +28,8 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    python3 -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
+   # per indicizzare anche i PDF
+   pip install "langchain-community[pdf]"
    ```
 
 2. **Variabili d'ambiente**
@@ -79,9 +81,15 @@ Se modifichi o aggiungi file nella cartella `docs/` devi rigenerare la cartella 
 Puoi utilizzare uno dei seguenti script (richiedono entrambi la variabile d'ambiente `OPENAI_API_KEY` impostata):
 
 ```bash
-python index_documents.py      # indicizza tutti i documenti
+python index_documents.py      # indicizza i soli file .txt
 # oppure
 python rebuild_vectordb.py
 ```
 
 Al termine l'indice FAISS nella cartella `vectordb/` sarà aggiornato con le ultime modifiche.
+
+Se necessario puoi includere anche i PDF passandone l'opzione `--include-pdf`
+agli script sopra. Il testo verrà estratto e suddiviso in sezioni rilevanti
+prima di calcolare le embedding; questa fase di parsing può richiedere
+significativamente più tempo rispetto all'indicizzazione dei soli file di
+testo.

@@ -1,47 +1,73 @@
+"""Script per indicizzare i documenti nella cartella ``docs/``.
+
+Per impostazione predefinita vengono elaborati soltanto i file ``.txt``.
+È possibile includere anche i PDF passando l'opzione ``--include-pdf``.
+In questo caso il testo viene estratto e suddiviso in sezioni rilevanti prima
+di generare le embedding, così da evitare di indicizzare parti superflue del
+documento.
+"""
+
 from dotenv import load_dotenv
-from langchain_openai import OpenAIEmbeddings  # Modifica qui
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import TextLoader, DirectoryLoader
-import os  # Importa il modulo os
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+import argparse
+import os
 
-# Se hai PDF, assicurati di avere PDFMinerLoader installato:
-# pip install langchain-community[pdf]
-# da langchain_community.document_loaders import PDFMinerLoader
 
-load_dotenv()
+def load_txt_documents() -> list:
+    """Carica tutti i file ``.txt`` presenti nella cartella ``docs/``."""
+    loader = DirectoryLoader("docs", glob="**/*.txt", loader_cls=TextLoader)
+    return loader.load()
 
-# Assicurati che la variabile d'ambiente OPENAI_API_KEY sia disponibile
-# Questo è necessario per OpenAIEmbeddings
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-if not OPENAI_API_KEY:
-    raise Exception(
-        "Devi impostare la variabile d'ambiente OPENAI_API_KEY per usare OpenAIEmbeddings."
+
+def load_pdf_sections() -> list:
+    """Estrae il testo dai PDF e lo suddivide in sezioni rilevanti.
+
+    Le sezioni con meno di 100 caratteri vengono scartate per ridurre il rumore
+    nell'indice finale.
+    """
+
+    from langchain_community.document_loaders import PDFMinerLoader
+
+    loader = DirectoryLoader("docs", glob="**/*.pdf", loader_cls=PDFMinerLoader)
+    raw_docs = loader.load()
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+    chunks = splitter.split_documents(raw_docs)
+    return [doc for doc in chunks if len(doc.page_content.strip()) >= 100]
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Indicizza i documenti presenti in docs/."
     )
+    parser.add_argument(
+        "--include-pdf",
+        action="store_true",
+        help="Includi anche i PDF (estratti e suddivisi in sezioni)",
+    )
+    args = parser.parse_args()
 
-# 1) Carica tutti i file .txt in docs/ (ricorsivamente)
-txt_loader = DirectoryLoader("docs", glob="**/*.txt", loader_cls=TextLoader)
+    load_dotenv()
 
-# 2) Se vuoi includere anche i PDF, decommenta le righe seguenti e assicurati
-#    di avere PDFMinerLoader installato:
-# pdf_loader = DirectoryLoader("docs", glob="**/*.pdf", loader_cls=PDFMinerLoader)
-# documents = txt_loader.load() + pdf_loader.load()
+    # Assicurati che la variabile d'ambiente OPENAI_API_KEY sia disponibile
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    if not OPENAI_API_KEY:
+        raise Exception(
+            "Devi impostare la variabile d'ambiente OPENAI_API_KEY per usare OpenAIEmbeddings."
+        )
 
-# Se ti bastano solo .txt, usa:
-documents = txt_loader.load()
+    documents = load_txt_documents()
+    if args.include_pdf:
+        documents.extend(load_pdf_sections())
 
-# 3) Scegli l’embedding di OpenAI
-# Modifica qui: usa OpenAIEmbeddings
-embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+    db = FAISS.from_documents(documents, embeddings)
+    db.save_local("vectordb/")
+    print("✅ Indicizzazione completata utilizzando OpenAIEmbeddings.")
 
-# 4) Crea (o ricrea) il database FAISS
-db = FAISS.from_documents(documents, embeddings)
 
-# 5) Salva il vector store (sovrascrive la vecchia versione)
-db.save_local("vectordb/")
+if __name__ == "__main__":
+    main()
 
-# Esempio di utilizzo:
-# retriever = db.as_retriever(search_kwargs={"k": 5})  # personalizza k se necessario
-
-print(
-    "✅ Indicizzazione (con tutti i documenti) completata utilizzando OpenAIEmbeddings."
-)
