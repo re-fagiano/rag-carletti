@@ -353,6 +353,7 @@ async def ask_question(request: Request):
 
         include_image = bool(payload.get("include_image", True))
         image_task = asyncio.create_task(cerca_immagine_bing(user_question, include_image))
+        image_task.add_done_callback(lambda t: t.exception())
 
         logger.info(f"▶️ Ricevuta query: {user_question!r} per agente {agent_id}")
 
@@ -382,11 +383,14 @@ async def ask_question(request: Request):
                 try:
                     answer = await rag.arun(user_question)
                 except AssertionError:
-                    await image_task
+                    image_task.cancel()
                     msg = "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
                     return JSONResponse(status_code=500, content={"error": msg})
-
-        image_url = await image_task
+        try:
+            image_url = await asyncio.wait_for(image_task, timeout=1.0)
+        except asyncio.TimeoutError:
+            logger.warning("\u26a0\ufe0f Ricerca immagine in ritardo, continuo senza immagine.")
+            image_url = ""
         html_answer = answer.replace("\n", "<br>")
         html_answer = applica_tooltip(html_answer)
 
@@ -403,7 +407,7 @@ async def ask_question(request: Request):
         return JSONResponse(status_code=500, content={"error": tb})
     finally:
         if image_task is not None and not image_task.done():
-            await image_task
+            image_task.cancel()
 
 
 @app.get("/health")
