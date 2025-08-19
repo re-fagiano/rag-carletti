@@ -258,7 +258,8 @@ RAG_CHAINS = {agent_id: build_rag(prompt) for agent_id, prompt in AGENT_PROMPTS.
 def applica_tooltip(testo: str) -> str:
     """Sostituisce i tooltip inline con note a piè di pagina numerate."""
 
-    footnotes = []
+    footnotes: list[str] = []
+    indice_per_termine: dict[str, int] = {}
 
     # Costruisce un'unica regex che intercetta tutte le chiavi del dizionario.
     chiavi_ordinate = sorted(TOOLTIPS.keys(), key=len, reverse=True)
@@ -269,12 +270,19 @@ def applica_tooltip(testo: str) -> str:
 
     def _sostituisci(match):
         termine = match.group(0)
-        spiegazione = TOOLTIPS.get(termine.lower(), "")
-        indice = len(footnotes) + 1
-        footnotes.append(
-            f'<li id="footnote-{indice}">{spiegazione} '
-            f'<a href="#ref-{indice}">↩</a></li>'
-        )
+        chiave = termine.lower()
+        spiegazione = TOOLTIPS.get(chiave, "")
+
+        if chiave not in indice_per_termine:
+            indice = len(indice_per_termine) + 1
+            indice_per_termine[chiave] = indice
+            footnotes.append(
+                f'<li id="footnote-{indice}">{spiegazione} '
+                f'<a href="#ref-{indice}">↩</a></li>'
+            )
+        else:
+            indice = indice_per_termine[chiave]
+
         return (
             f"{termine}<sup id=\"ref-{indice}\">"
             f"<a href=\"#footnote-{indice}\">[{indice}]</a></sup>"
