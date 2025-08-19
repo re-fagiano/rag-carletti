@@ -144,6 +144,47 @@
       margin-bottom: 0.5rem;
     }
 
+    .tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+      font-weight: bold;
+      color: #444;
+    }
+
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 200px;
+      background-color: #222;
+      color: #fff;
+      text-align: left;
+      padding: 8px;
+      border-radius: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .tooltip .tooltiptext::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -5px;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #222 transparent transparent transparent;
+    }
+
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+
     sup a {
       text-decoration: none;
       color: var(--accent);
