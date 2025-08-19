@@ -258,7 +258,7 @@ RAG_CHAINS = {agent_id: build_rag(prompt) for agent_id, prompt in AGENT_PROMPTS.
 def applica_tooltip(testo: str) -> str:
     """Sostituisce i tooltip inline con note a piè di pagina numerate."""
 
-    footnotes = []
+    footnotes: dict[str, dict] = {}
 
     # Costruisce un'unica regex che intercetta tutte le chiavi del dizionario.
     chiavi_ordinate = sorted(TOOLTIPS.keys(), key=len, reverse=True)
@@ -269,21 +269,38 @@ def applica_tooltip(testo: str) -> str:
 
     def _sostituisci(match):
         termine = match.group(0)
-        spiegazione = TOOLTIPS.get(termine.lower(), "")
-        indice = len(footnotes) + 1
-        footnotes.append(
-            f'<li id="footnote-{indice}">{spiegazione} '
-            f'<a href="#ref-{indice}">↩</a></li>'
-        )
+        key = termine.lower()
+        if key not in footnotes:
+            indice = len(footnotes) + 1
+            footnotes[key] = {
+                "indice": indice,
+                "spiegazione": TOOLTIPS.get(key, ""),
+                "occorrenze": [],
+            }
+        dati = footnotes[key]
+        occorrenza = len(dati["occorrenze"]) + 1
+        dati["occorrenze"].append(occorrenza)
+        indice = dati["indice"]
         return (
-            f"{termine}<sup id=\"ref-{indice}\">"
+            f"{termine}<sup id=\"ref-{indice}-{occorrenza}\">"
             f"<a href=\"#footnote-{indice}\">[{indice}]</a></sup>"
         )
 
     testo = pattern.sub(_sostituisci, testo)
 
     if footnotes:
-        testo += "<hr /><ol class=\"footnotes\">" + "".join(footnotes) + "</ol>"
+        elementi = []
+        for dati in footnotes.values():
+            indice = dati["indice"]
+            spiegazione = dati["spiegazione"]
+            backlinks = " ".join(
+                f'<a href="#ref-{indice}-{occ}">↩</a>'
+                for occ in dati["occorrenze"]
+            )
+            elementi.append(
+                f'<li id="footnote-{indice}">{spiegazione} {backlinks}</li>'
+            )
+        testo += "<hr /><ol class=\"footnotes\">" + "".join(elementi) + "</ol>"
 
     return testo
 
