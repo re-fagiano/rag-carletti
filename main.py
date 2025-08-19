@@ -69,7 +69,7 @@ try:
     BASE_INSTRUCTION = (
         "Rispondi sempre in modo chiaro, tecnico, e senza ironia. "
         "Non aggiungere battute, frasi umoristiche o riferimenti surreali. Concentrati solo sulla risoluzione del problema. "
-        "Se rilevi termini tecnici, formattali con i tooltip. Se opportuno, includi un'immagine rilevante tramite Bing. "
+        "Se rilevi termini tecnici, aggiungi note a piè di pagina numerate con spiegazioni sintetiche. Se opportuno, includi un'immagine rilevante tramite Bing. "
         "Termina ogni risposta con una domanda mirata per approfondire la richiesta dell'utente."
     )
 
@@ -256,14 +256,35 @@ def build_rag(system_instruction: str) -> RetrievalQA:
 RAG_CHAINS = {agent_id: build_rag(prompt) for agent_id, prompt in AGENT_PROMPTS.items()}
 
 def applica_tooltip(testo: str) -> str:
-    for chiave, spiegazione in TOOLTIPS.items():
-        pattern = r"(?<![\\w>])(" + re.escape(chiave) + r")(?![\\w<])"
-        replacement = (
-            r'<span class="tooltip">\1 <span class="info-icon">ⓘ</span>'
-            r'<span class="tooltiptext">' + spiegazione + r"</span>"
-            r"</span>"
+    """Sostituisce i tooltip inline con note a piè di pagina numerate."""
+
+    footnotes = []
+
+    # Costruisce un'unica regex che intercetta tutte le chiavi del dizionario.
+    chiavi_ordinate = sorted(TOOLTIPS.keys(), key=len, reverse=True)
+    pattern = re.compile(
+        r"(?<![\\w>])(" + "|".join(map(re.escape, chiavi_ordinate)) + r")(?![\\w<])",
+        re.IGNORECASE,
+    )
+
+    def _sostituisci(match):
+        termine = match.group(0)
+        spiegazione = TOOLTIPS.get(termine.lower(), "")
+        indice = len(footnotes) + 1
+        footnotes.append(
+            f'<li id="footnote-{indice}">{spiegazione} '
+            f'<a href="#ref-{indice}">↩</a></li>'
         )
-        testo = re.sub(pattern, replacement, testo, flags=re.IGNORECASE)
+        return (
+            f"{termine}<sup id=\"ref-{indice}\">"
+            f"<a href=\"#footnote-{indice}\">[{indice}]</a></sup>"
+        )
+
+    testo = pattern.sub(_sostituisci, testo)
+
+    if footnotes:
+        testo += "<hr /><ol class=\"footnotes\">" + "".join(footnotes) + "</ol>"
+
     return testo
 
 

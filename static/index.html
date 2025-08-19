@@ -22,6 +22,10 @@
       --user-bg: #4a1a1a;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       font-family: system-ui, sans-serif;
       background-color: var(--bg);
@@ -130,28 +134,19 @@
       cursor: pointer;
     }
 
-    .tooltip {
-      position: relative;
-      display: inline-block;
-      cursor: help;
-      font-weight: bold;
+    .footnotes {
+      font-size: 0.875rem;
+      margin-top: 1rem;
+      padding-left: 1.25rem;
+    }
+
+    .footnotes li {
+      margin-bottom: 0.5rem;
+    }
+
+    sup a {
+      text-decoration: none;
       color: var(--accent);
-      border-bottom: 1px dotted var(--accent);
-    }
-
-    .tooltip .tooltiptext {
-      visibility: hidden;
-      width: 240px;
-      background-color: var(--accent);
-      color: #fff;
-      text-align: left;
-@@ -158,87 +167,95 @@
-      border-color: var(--accent) transparent transparent transparent;
-    }
-
-    .tooltip:hover .tooltiptext {
-      visibility: visible;
-      opacity: 1;
     }
 
     #loading {
