@@ -16,4 +16,4 @@ Questo glossario spiega alcuni termini tecnici ricorrenti nelle guide.
 | **Tachimetro/tachimetrica** | Sensore montato sul motore che misura la velocità di rotazione.  Un guasto può impedire alla lavatrice di modulare correttamente la centrifuga. |
 | **Fermo di trasporto** | Bullone usato per bloccare il cestello durante il trasporto.  Deve essere rimosso prima dell’utilizzo; in caso contrario causa vibrazioni e rumori. |
 
-L’agente può usare questo glossario per aggiungere tooltip alle risposte tecniche e linkare immagini esplicative provenienti dal repository (esplosi e manuali).
+L’agente può usare questo glossario per aggiungere note a piè di pagina alle risposte tecniche e linkare immagini esplicative provenienti dal repository (esplosi e manuali).
