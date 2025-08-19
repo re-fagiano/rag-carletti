@@ -4,6 +4,7 @@ import os
 import re
 import asyncio
 import requests
+import html
 from types import MappingProxyType
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
@@ -271,13 +272,15 @@ def applica_tooltip(testo: str) -> str:
         termine = match.group(0)
         spiegazione = TOOLTIPS.get(termine.lower(), "")
         indice = len(footnotes) + 1
+        spiegazione_html = html.escape(spiegazione)
         footnotes.append(
-            f'<li id="footnote-{indice}">{spiegazione} '
+            f'<li id="footnote-{indice}">{spiegazione_html} '
             f'<a href="#ref-{indice}">↩</a></li>'
         )
         return (
-            f"{termine}<sup id=\"ref-{indice}\">"
-            f"<a href=\"#footnote-{indice}\">[{indice}]</a></sup>"
+            f"{termine}<sup id=\"ref-{indice}\" class=\"tooltip\">"
+            f"<a href=\"#footnote-{indice}\">[{indice}]</a>"
+            f"<span class=\"tooltiptext\">{spiegazione_html}</span></sup>"
         )
 
     testo = pattern.sub(_sostituisci, testo)
