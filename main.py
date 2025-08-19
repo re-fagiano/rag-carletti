@@ -5,9 +5,10 @@ import re
 import asyncio
 import requests
 from types import MappingProxyType
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field, AliasChoices
 
 # LangChain / OpenAI
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
@@ -335,13 +336,22 @@ def classify_query(question: str) -> int:
     return 1  # default a Gustav
 
 
+class AskRequest(BaseModel):
+    query: str
+    agent_id: int | str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("agent_id", "agent"),
+    )
+    session_id: str = "default"
+    include_image: bool = True
+
+
 @app.post("/ask")
-async def ask_question(request: Request):
+async def ask_question(req: AskRequest):
     image_task = None
     try:
-        payload = await request.json()
-        user_question = payload.get("query", "").strip()
-        session_id = payload.get("session_id", "default")
+        user_question = req.query.strip()
+        session_id = req.session_id or "default"
         memory = CONVERSATIONS.setdefault(
             session_id, ConversationBufferMemory(return_messages=False)
         )
@@ -352,7 +362,7 @@ async def ask_question(request: Request):
             )
 
         # Recupera l'id dell'agente, accettando sia 'agent_id' che 'agent'
-        agent_raw = payload.get("agent_id") or payload.get("agent")
+        agent_raw = req.agent_id
         if agent_raw is None:
             agent_id = classify_query(user_question)
         else:
@@ -380,7 +390,7 @@ async def ask_question(request: Request):
                         detail={"error": "Invalid agent", "agenti": AGENTS},
                     )
 
-        include_image = bool(payload.get("include_image", True))
+        include_image = req.include_image
         image_task = asyncio.create_task(cerca_immagine_bing(user_question, include_image))
 
         logger.info(f"▶️ Ricevuta query: {user_question!r} per agente {agent_id}")
