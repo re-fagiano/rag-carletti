@@ -1,5 +1,5 @@
 import argparse
-import requests
+import httpx
 
 # URL della tua API FastAPI
 url = "http://127.0.0.1:8000/ask"
@@ -31,7 +31,7 @@ while True:
         break
 
     try:
-        response = requests.post(url, json={"query": domanda, "agent_id": agent_id})
+        response = httpx.post(url, json={"query": domanda, "agent_id": agent_id})
         if response.status_code == 200:
             print("🤖 Bot:", response.json().get("risposta", "[Nessuna risposta]"))
         else:
