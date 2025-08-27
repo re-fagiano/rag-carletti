@@ -40,12 +40,24 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 CONVERSATIONS: dict[str, ConversationBufferMemory] = {}
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
 ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
 
-if not OPENAI_API_KEY:
-    raise Exception("Devi impostare la variabile d'ambiente OPENAI_API_KEY")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
+if LLM_PROVIDER == "deepseek":
+    LLM_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+    if not LLM_API_KEY:
+        raise Exception("Devi impostare la variabile d'ambiente DEEPSEEK_API_KEY")
+    LLM_API_BASE = "https://api.deepseek.com"
+    CHAT_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+    EMBEDDINGS_MODEL = os.getenv("DEEPSEEK_EMBEDDINGS_MODEL", "deepseek-embedding")
+else:
+    LLM_API_KEY = os.getenv("OPENAI_API_KEY")
+    if not LLM_API_KEY:
+        raise Exception("Devi impostare la variabile d'ambiente OPENAI_API_KEY")
+    LLM_API_BASE = os.getenv("OPENAI_API_BASE")
+    CHAT_MODEL = os.getenv("OPENAI_MODEL", "gpt-5")
+    EMBEDDINGS_MODEL = os.getenv("OPENAI_EMBEDDINGS_MODEL", "text-embedding-3-large")
 
 VECTORDB_PATH = "vectordb/"
 if not os.path.isdir(VECTORDB_PATH):
@@ -54,16 +66,21 @@ if not os.path.isdir(VECTORDB_PATH):
     )
 
 try:
-    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+    embeddings = OpenAIEmbeddings(
+        model=EMBEDDINGS_MODEL,
+        openai_api_key=LLM_API_KEY,
+        openai_api_base=LLM_API_BASE,
+    )
     db = FAISS.load_local(
         VECTORDB_PATH, embeddings, allow_dangerous_deserialization=True
     )
     retriever = db.as_retriever(search_kwargs={"k": 5})
 
     llm = ChatOpenAI(
-        model_name=os.getenv("OPENAI_MODEL", "gpt-5"),
+        model_name=CHAT_MODEL,
         temperature=0,
-        openai_api_key=OPENAI_API_KEY,
+        openai_api_key=LLM_API_KEY,
+        openai_api_base=LLM_API_BASE,
     )
 
     BASE_INSTRUCTION = (

@@ -51,18 +51,31 @@ def main() -> None:
 
     load_dotenv()
 
-    # Assicurati che la variabile d'ambiente OPENAI_API_KEY sia disponibile
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    if not OPENAI_API_KEY:
-        raise Exception(
-            "Devi impostare la variabile d'ambiente OPENAI_API_KEY per usare OpenAIEmbeddings."
-        )
+    llm_provider = os.getenv("LLM_PROVIDER", "openai").lower()
+    if llm_provider == "deepseek":
+        api_key = os.getenv("DEEPSEEK_API_KEY")
+        if not api_key:
+            raise Exception(
+                "Devi impostare la variabile d'ambiente DEEPSEEK_API_KEY per usare OpenAIEmbeddings."
+            )
+        api_base = "https://api.deepseek.com"
+        model = os.getenv("DEEPSEEK_EMBEDDINGS_MODEL", "deepseek-embedding")
+    else:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise Exception(
+                "Devi impostare la variabile d'ambiente OPENAI_API_KEY per usare OpenAIEmbeddings."
+            )
+        api_base = os.getenv("OPENAI_API_BASE")
+        model = os.getenv("OPENAI_EMBEDDINGS_MODEL", "text-embedding-3-large")
 
     documents = load_txt_documents()
     if args.include_pdf:
         documents.extend(load_pdf_sections())
 
-    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+    embeddings = OpenAIEmbeddings(
+        model=model, openai_api_key=api_key, openai_api_base=api_base
+    )
     db = FAISS.from_documents(documents, embeddings)
     db.save_local("vectordb/")
     print("✅ Indicizzazione completata utilizzando OpenAIEmbeddings.")
