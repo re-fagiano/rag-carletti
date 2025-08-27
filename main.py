@@ -43,6 +43,7 @@ CONVERSATIONS: dict[str, ConversationBufferMemory] = {}
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
 ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
 
 if not OPENAI_API_KEY:
     raise Exception("Devi impostare la variabile d'ambiente OPENAI_API_KEY")
@@ -467,6 +468,32 @@ async def ask_question(request: Request):
 
 @app.get("/health")
 async def health():
+    provider = os.getenv("LLM_PROVIDER", "").lower()
+    if provider == "deepseek":
+        key = os.getenv("DEEPSEEK_API_KEY")
+        if not key:
+            return JSONResponse(
+                status_code=500,
+                content={"status": "error", "detail": "DEEPSEEK_API_KEY mancante"},
+            )
+
+        try:
+            resp = requests.get(
+                "https://api.deepseek.com/v1/models",
+                headers={"Authorization": f"Bearer {key}"},
+                timeout=5,
+            )
+            if resp.status_code != 200:
+                return JSONResponse(
+                    status_code=500,
+                    content={"status": "error", "detail": "DEEPSEEK_API_KEY non valida"},
+                )
+        except Exception as exc:
+            return JSONResponse(
+                status_code=500,
+                content={"status": "error", "detail": f"Impossibile verificare la chiave: {exc}"},
+            )
+
     return {"status": "ok"}
 
 
