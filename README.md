@@ -34,9 +34,10 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
 
 2. **Variabili d'ambiente**
    È possibile scegliere il provider del modello tramite `LLM_PROVIDER` (`openai` predefinito oppure `deepseek`).
+   Se è presente solo `DEEPSEEK_API_KEY` e manca `OPENAI_API_KEY`, il valore di `LLM_PROVIDER` viene impostato automaticamente su `deepseek`.
    Imposta la chiave API corrispondente prima di avviare l'applicazione:
    ```bash
-   export LLM_PROVIDER=openai            # oppure deepseek
+   export LLM_PROVIDER=openai            # oppure deepseek (impostato automaticamente se manca OPENAI_API_KEY)
    export OPENAI_API_KEY=<chiave se usi OpenAI>
    export DEEPSEEK_API_KEY=<chiave se usi DeepSeek>
    export BING_SEARCH_API_KEY=<opzionale per immagini>
