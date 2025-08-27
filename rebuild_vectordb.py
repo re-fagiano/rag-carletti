@@ -39,13 +39,32 @@ def main() -> None:
     args = parser.parse_args()
 
     load_dotenv()
-    os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+
+    llm_provider = os.getenv("LLM_PROVIDER", "openai").lower()
+    if llm_provider == "deepseek":
+        api_key = os.getenv("DEEPSEEK_API_KEY")
+        if not api_key:
+            raise Exception(
+                "Devi impostare la variabile d'ambiente DEEPSEEK_API_KEY per usare OpenAIEmbeddings."
+            )
+        api_base = "https://api.deepseek.com"
+        model = os.getenv("DEEPSEEK_EMBEDDINGS_MODEL", "deepseek-embedding")
+    else:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise Exception(
+                "Devi impostare la variabile d'ambiente OPENAI_API_KEY per usare OpenAIEmbeddings."
+            )
+        api_base = os.getenv("OPENAI_API_BASE")
+        model = os.getenv("OPENAI_EMBEDDINGS_MODEL", "text-embedding-3-large")
 
     docs = load_txt_documents()
     if args.include_pdf:
         docs.extend(load_pdf_sections())
 
-    embeddings = OpenAIEmbeddings(openai_api_key=os.getenv("OPENAI_API_KEY"))
+    embeddings = OpenAIEmbeddings(
+        model=model, openai_api_key=api_key, openai_api_base=api_base
+    )
     faiss_db = FAISS.from_documents(docs, embeddings)
     faiss_db.save_local("vectordb/")
     print("✅ Indice FAISS (dim=1536) ricostruito correttamente.")
