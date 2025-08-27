@@ -47,25 +47,44 @@ def main() -> None:
         action="store_true",
         help="Includi anche i PDF (estratti e suddivisi in sezioni)",
     )
+    parser.add_argument(
+        "--provider",
+        default=os.getenv("LLM_PROVIDER", "openai"),
+        choices=["openai", "deepseek"],
+        help="Provider LLM da utilizzare (default: valore di LLM_PROVIDER)",
+    )
     args = parser.parse_args()
 
     load_dotenv()
 
-    # Assicurati che la variabile d'ambiente OPENAI_API_KEY sia disponibile
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-    if not OPENAI_API_KEY:
-        raise Exception(
-            "Devi impostare la variabile d'ambiente OPENAI_API_KEY per usare OpenAIEmbeddings."
+    provider = args.provider.lower()
+    if provider == "openai":
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise Exception(
+                "Devi impostare la variabile d'ambiente OPENAI_API_KEY oppure usare --provider deepseek"
+            )
+        embeddings = OpenAIEmbeddings(openai_api_key=api_key)
+    else:  # deepseek
+        api_key = os.getenv("DEEPSEEK_API_KEY")
+        base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+        if not api_key:
+            raise Exception(
+                "Devi impostare la variabile d'ambiente DEEPSEEK_API_KEY per usare --provider deepseek"
+            )
+        embeddings = OpenAIEmbeddings(
+            openai_api_key=api_key,
+            base_url=base_url,
+            default_headers={"Authorization": f"Bearer {api_key}"},
         )
 
     documents = load_txt_documents()
     if args.include_pdf:
         documents.extend(load_pdf_sections())
 
-    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
     db = FAISS.from_documents(documents, embeddings)
     db.save_local("vectordb/")
-    print("✅ Indicizzazione completata utilizzando OpenAIEmbeddings.")
+    print(f"✅ Indicizzazione completata utilizzando il provider {provider}.")
 
 
 if __name__ == "__main__":

@@ -40,12 +40,22 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 CONVERSATIONS: dict[str, ConversationBufferMemory] = {}
 
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
 ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
 
-if not OPENAI_API_KEY:
-    raise Exception("Devi impostare la variabile d'ambiente OPENAI_API_KEY")
+if LLM_PROVIDER not in {"openai", "deepseek"}:
+    raise Exception("LLM_PROVIDER deve essere 'openai' o 'deepseek'")
+
+if LLM_PROVIDER == "openai" and not OPENAI_API_KEY:
+    raise Exception(
+        "Devi impostare la variabile d'ambiente OPENAI_API_KEY oppure usare LLM_PROVIDER=deepseek"
+    )
+if LLM_PROVIDER == "deepseek" and not DEEPSEEK_API_KEY:
+    raise Exception("Devi impostare la variabile d'ambiente DEEPSEEK_API_KEY")
 
 VECTORDB_PATH = "vectordb/"
 if not os.path.isdir(VECTORDB_PATH):
@@ -54,17 +64,33 @@ if not os.path.isdir(VECTORDB_PATH):
     )
 
 try:
-    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+    if LLM_PROVIDER == "openai":
+        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+    else:  # deepseek
+        embeddings = OpenAIEmbeddings(
+            openai_api_key=DEEPSEEK_API_KEY,
+            base_url=DEEPSEEK_BASE_URL,
+            default_headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
+        )
     db = FAISS.load_local(
         VECTORDB_PATH, embeddings, allow_dangerous_deserialization=True
     )
     retriever = db.as_retriever(search_kwargs={"k": 5})
 
-    llm = ChatOpenAI(
-        model_name=os.getenv("OPENAI_MODEL", "gpt-5"),
-        temperature=0,
-        openai_api_key=OPENAI_API_KEY,
-    )
+    if LLM_PROVIDER == "openai":
+        llm = ChatOpenAI(
+            model_name=os.getenv("OPENAI_MODEL", "gpt-5"),
+            temperature=0,
+            openai_api_key=OPENAI_API_KEY,
+        )
+    else:  # deepseek
+        llm = ChatOpenAI(
+            model_name=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+            temperature=0,
+            openai_api_key=DEEPSEEK_API_KEY,
+            base_url=DEEPSEEK_BASE_URL,
+            default_headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
+        )
 
     BASE_INSTRUCTION = (
         "Rispondi sempre in modo chiaro, tecnico, e senza ironia. "

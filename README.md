@@ -33,10 +33,12 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    ```
 
 2. **Variabili d'ambiente**
-   Imposta almeno la chiave di OpenAI prima di avviare l'applicazione. È possibile
-   specificare un modello diverso tramite la variabile `OPENAI_MODEL` (predefinito `gpt-5`):
+   È possibile scegliere il provider del modello tramite `LLM_PROVIDER` (`openai` predefinito oppure `deepseek`).
+   Imposta la chiave API corrispondente prima di avviare l'applicazione:
    ```bash
-   export OPENAI_API_KEY=<la tua chiave>
+   export LLM_PROVIDER=openai            # oppure deepseek
+   export OPENAI_API_KEY=<chiave se usi OpenAI>
+   export DEEPSEEK_API_KEY=<chiave se usi DeepSeek>
    export BING_SEARCH_API_KEY=<opzionale per immagini>
    export OPENAI_MODEL=<modello opzionale>
    export ENABLE_IMAGE_SEARCH=true  # disabilita con false
@@ -53,9 +55,13 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
 ```bash
 # build image
 docker build -t rag-carletti .
-# esegui l'app
+# esegui l'app con OpenAI
 docker run -p 8000:8000 -e OPENAI_API_KEY=<la tua chiave> \
-    -e OPENAI_MODEL=<modello opzionale> rag-carletti
+    -e LLM_PROVIDER=openai rag-carletti
+
+# oppure con DeepSeek
+docker run -p 8000:8000 -e DEEPSEEK_API_KEY=<la tua chiave> \
+    -e LLM_PROVIDER=deepseek rag-carletti
 ```
 
 ## Endpoint /ask
@@ -78,7 +84,7 @@ curl -X POST http://localhost:8000/ask \
 
 Se modifichi o aggiungi file nella cartella `docs/` devi rigenerare la cartella `vectordb/` per riflettere i nuovi contenuti.
 
-Puoi utilizzare uno dei seguenti script (richiedono entrambi la variabile d'ambiente `OPENAI_API_KEY` impostata):
+Puoi utilizzare uno dei seguenti script (richiedono la chiave API del provider selezionato):
 
 ```bash
 python index_documents.py      # indicizza i soli file .txt
