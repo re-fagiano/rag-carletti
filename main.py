@@ -47,15 +47,23 @@ DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
 ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
 
+if DEEPSEEK_API_KEY and not OPENAI_API_KEY:
+    LLM_PROVIDER = "deepseek"
+
 if LLM_PROVIDER not in {"openai", "deepseek"}:
     raise Exception("LLM_PROVIDER deve essere 'openai' o 'deepseek'")
 
 if LLM_PROVIDER == "openai" and not OPENAI_API_KEY:
     raise Exception(
-        "Devi impostare la variabile d'ambiente OPENAI_API_KEY oppure usare LLM_PROVIDER=deepseek"
+        "Variabile d'ambiente OPENAI_API_KEY mancante. "
+        "Imposta OPENAI_API_KEY e LLM_PROVIDER=openai oppure "
+        "fornisci DEEPSEEK_API_KEY e LLM_PROVIDER=deepseek."
     )
 if LLM_PROVIDER == "deepseek" and not DEEPSEEK_API_KEY:
-    raise Exception("Devi impostare la variabile d'ambiente DEEPSEEK_API_KEY")
+    raise Exception(
+        "Variabile d'ambiente DEEPSEEK_API_KEY mancante. "
+        "Imposta DEEPSEEK_API_KEY e LLM_PROVIDER=deepseek."
+    )
 
 VECTORDB_PATH = "vectordb/"
 if not os.path.isdir(VECTORDB_PATH):
