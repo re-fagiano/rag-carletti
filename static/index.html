@@ -195,7 +195,7 @@
         const sanitized = DOMPurify.sanitize(text, {
           ALLOWED_TAGS: [
             'a', 'sup', 'img', 'b', 'strong', 'i', 'em', 'code',
-            'p', 'br', 'ul', 'ol', 'li', 'span'
+            'p', 'br', 'ul', 'ol', 'li', 'span', 'details', 'summary', 'pre'
           ],
           ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'id', 'class', 'title']
         });
@@ -221,22 +221,42 @@
           body: JSON.stringify({ query, agent_id: parseInt(agentSelect.value) })
         })
           .then(async resp => {
-            const data = await resp.json();
-            document.getElementById('loading').parentElement.remove();
+            let data;
+            try {
+              data = await resp.json();
+            } catch (e) {
+              console.error('Invalid JSON', e);
+              const loadingEl = document.getElementById('loading');
+              if (loadingEl) loadingEl.parentElement.remove();
+              addMessage('❌ Risposta non valida dal server.', 'bot');
+              sendBtn.disabled = false;
+              promptInput.focus();
+              return;
+            }
+
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl) loadingEl.parentElement.remove();
+
             if (resp.ok && data.risposta) {
               addMessage(data.risposta, 'bot');
             } else {
               const msg = data.error || 'Errore interno.';
               addMessage('❌ ' + msg, 'bot');
+              if (data.trace) {
+                const traceHtml = `<details><summary>Dettagli</summary><pre>${DOMPurify.sanitize(data.trace)}</pre></details>`;
+                addMessage(traceHtml, 'bot');
+              }
             }
             sendBtn.disabled = false;
             promptInput.focus();
           })
           .catch(err => {
             console.error(err);
-            document.getElementById('loading').parentElement.remove();
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl) loadingEl.parentElement.remove();
             addMessage('❌ Errore: impossibile contattare il server.', 'bot');
             sendBtn.disabled = false;
+            promptInput.focus();
           });
       }
 
