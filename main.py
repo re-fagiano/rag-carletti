@@ -86,8 +86,9 @@ try:
     retriever = db.as_retriever(search_kwargs={"k": 5})
 
     if LLM_PROVIDER == "openai":
+        # Default model can be overridden via OPENAI_MODEL and must exist in your account
         llm = ChatOpenAI(
-            model_name=os.getenv("OPENAI_MODEL", "gpt-5"),
+            model_name=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
             temperature=0,
             openai_api_key=OPENAI_API_KEY,
         )
