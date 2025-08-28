@@ -3,7 +3,7 @@ import traceback
 import os
 import re
 import asyncio
-import requests
+import httpx
 from types import MappingProxyType
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
@@ -333,22 +333,20 @@ def applica_tooltip(testo: str) -> str:
 async def cerca_immagine_bing(query: str, image_requested: bool = True) -> str:
     if not image_requested or not ENABLE_IMAGE_SEARCH or not BING_SEARCH_API_KEY:
         return ""
-
-    def _search() -> str:
-        headers = {"Ocp-Apim-Subscription-Key": BING_SEARCH_API_KEY}
-        params = {"q": query, "count": 1, "imageType": "Photo"}
-        response = requests.get(
-            "https://api.bing.microsoft.com/v7.0/images/search",
-            headers=headers,
-            params=params,
-        )
-        try:
+    headers = {"Ocp-Apim-Subscription-Key": BING_SEARCH_API_KEY}
+    params = {"q": query, "count": 1, "imageType": "Photo"}
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://api.bing.microsoft.com/v7.0/images/search",
+                headers=headers,
+                params=params,
+            )
             results = response.json()
             return results["value"][0]["contentUrl"] if results["value"] else ""
-        except Exception:
-            return ""
+    except Exception:
+        return ""
 
-    return await asyncio.to_thread(_search)
 
 
 def classify_query(question: str) -> int:
