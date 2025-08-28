@@ -493,7 +493,10 @@ async def ask_question(request: Request):
     except Exception:
         tb = traceback.format_exc()
         logger.error(f"❌ Errore interno durante /ask:\n{tb}")
-        return JSONResponse(status_code=500, content={"error": tb})
+        short_msg = "Si è verificato un errore interno"
+        return JSONResponse(
+            status_code=500, content={"error": short_msg, "trace": tb}
+        )
     finally:
         if image_task is not None and not image_task.done():
             await image_task
