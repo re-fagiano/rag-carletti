@@ -68,7 +68,10 @@ if LLM_PROVIDER == "deepseek" and not DEEPSEEK_API_KEY:
 VECTORDB_PATH = "vectordb/"
 if not os.path.isdir(VECTORDB_PATH):
     raise Exception(
-        f"Directory '{VECTORDB_PATH}' non trovata. Ricrea o committa l'indice FAISS."
+        f"Directory '{VECTORDB_PATH}' non trovata. "
+        "Esegui `index_documents.py --provider <openai|deepseek>` "
+        "(il provider di embedding deve coincidere con LLM_PROVIDER) "
+        "oppure committa la cartella 'vectordb/'."
     )
 
 try:
@@ -470,7 +473,11 @@ async def ask_question(request: Request):
                     answer = await rag.arun(question_with_context)
                 except AssertionError:
                     await image_task
-                    msg = "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
+                    msg = (
+                        "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con "
+                        "`index_documents.py --provider <openai|deepseek>` "
+                        "(il provider deve coincidere con LLM_PROVIDER)."
+                    )
                     return JSONResponse(status_code=500, content={"error": msg})
 
         # Aggiorna la memoria con l'interazione corrente
