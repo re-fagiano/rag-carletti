@@ -45,7 +45,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
-ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
+ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "false").lower() == "true"
 
 if DEEPSEEK_API_KEY and not OPENAI_API_KEY:
     LLM_PROVIDER = "deepseek"
