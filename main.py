@@ -40,29 +40,55 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 CONVERSATIONS: dict[str, ConversationBufferMemory] = {}
 
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai").lower()
+# Default to DeepSeek unless explicitly overridden
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "deepseek").lower()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
 ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
 
-if DEEPSEEK_API_KEY and not OPENAI_API_KEY:
-    LLM_PROVIDER = "deepseek"
-
 if LLM_PROVIDER not in {"openai", "deepseek"}:
     raise Exception("LLM_PROVIDER deve essere 'openai' o 'deepseek'")
 
-if LLM_PROVIDER == "openai" and not OPENAI_API_KEY:
-    raise Exception(
-        "Variabile d'ambiente OPENAI_API_KEY mancante. "
-        "Imposta OPENAI_API_KEY e LLM_PROVIDER=openai oppure "
-        "fornisci DEEPSEEK_API_KEY e LLM_PROVIDER=deepseek."
-    )
+# Fallback: if OpenAI is requested but unavailable, use DeepSeek
+if LLM_PROVIDER == "openai":
+    if not OPENAI_API_KEY:
+        if DEEPSEEK_API_KEY:
+            logger.warning(
+                "Chiave OpenAI assente. Uso DeepSeek come provider predefinito."
+            )
+            LLM_PROVIDER = "deepseek"
+        else:
+            raise Exception(
+                "Variabile d'ambiente OPENAI_API_KEY mancante e nessuna chiave "
+                "DEEPSEEK fornita per il fallback."
+            )
+    else:
+        try:
+            resp = requests.get(
+                "https://api.openai.com/v1/models",
+                headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+                timeout=5,
+            )
+            if resp.status_code != 200:
+                raise Exception(resp.text)
+        except Exception:
+            if DEEPSEEK_API_KEY:
+                logger.warning(
+                    "Autenticazione OpenAI fallita. Uso DeepSeek come provider predefinito."
+                )
+                LLM_PROVIDER = "deepseek"
+            else:
+                raise Exception(
+                    "Autenticazione OpenAI fallita e nessuna chiave DEEPSEEK fornita."
+                )
+
 if LLM_PROVIDER == "deepseek" and not DEEPSEEK_API_KEY:
     raise Exception(
-        "Variabile d'ambiente DEEPSEEK_API_KEY mancante. "
-        "Imposta DEEPSEEK_API_KEY e LLM_PROVIDER=deepseek."
+        "Variabile d'ambiente DEEPSEEK_API_KEY mancante. Imposta DEEPSEEK_API_KEY "
+        "per usare il provider predefinito o fornisci OPENAI_API_KEY e "
+        "LLM_PROVIDER=openai."
     )
 
 VECTORDB_PATH = "vectordb/"
