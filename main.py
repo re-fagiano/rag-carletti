@@ -49,7 +49,11 @@ embeddings = None
 INIT_ERROR = None
 
 # Provider di default: DeepSeek, in linea con README e script ausiliari
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "deepseek").lower()
+_provider_env = os.getenv("LLM_PROVIDER")
+if not _provider_env or not _provider_env.strip():
+    LLM_PROVIDER = "deepseek"
+else:
+    LLM_PROVIDER = _provider_env.strip().lower()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
@@ -125,11 +129,18 @@ try:
         )
 
     logger.info("✅ Ambiente base inizializzato correttamente.")
-except (openai.APIConnectionError, requests.exceptions.RequestException):
+except (openai.APIConnectionError, requests.exceptions.RequestException) as exc:
     provider_name = "OpenAI" if LLM_PROVIDER == "openai" else "DeepSeek"
-    INIT_ERROR = (
-        f"Impossibile contattare l'API {provider_name}; verifica rete o chiave"
-    )
+    if (
+        isinstance(exc, requests.exceptions.HTTPError)
+        and exc.response is not None
+        and exc.response.status_code == 401
+    ):
+        INIT_ERROR = f"Chiave API {provider_name} non valida"
+    else:
+        INIT_ERROR = (
+            f"Impossibile contattare l'API {provider_name}; verifica rete o chiave"
+        )
     logger.error(INIT_ERROR)
 except Exception:
     logger.exception("❌ Errore durante l'inizializzazione della pipeline RAG:")
