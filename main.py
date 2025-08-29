@@ -34,8 +34,6 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    if INIT_ERROR:
-        return JSONResponse(status_code=500, content={"error": INIT_ERROR})
     return FileResponse("static/index.html")
 
 
@@ -541,6 +539,8 @@ async def ask_question(request: Request):
 
 @app.get("/health")
 async def health():
+    if INIT_ERROR:
+        return {"status": "error", "detail": INIT_ERROR}
     return {"status": "ok"}
 
 
