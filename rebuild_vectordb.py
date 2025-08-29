@@ -38,9 +38,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--provider",
-        default=os.getenv("LLM_PROVIDER", "openai"),
+        default=os.getenv("LLM_PROVIDER", "deepseek"),
         choices=["openai", "deepseek"],
-        help="Provider LLM da utilizzare (default: valore di LLM_PROVIDER)",
+        help="Provider LLM da utilizzare (default: deepseek)",
     )
     args = parser.parse_args()
 
