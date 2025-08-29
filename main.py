@@ -4,6 +4,7 @@ import os
 import re
 import asyncio
 import requests
+import openai
 from types import MappingProxyType
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
@@ -33,12 +34,19 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
+    if INIT_ERROR:
+        return JSONResponse(status_code=500, content={"error": INIT_ERROR})
     return FileResponse("static/index.html")
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 CONVERSATIONS: dict[str, ConversationBufferMemory] = {}
+
+llm = None
+retriever = None
+embeddings = None
+INIT_ERROR = None
 
 # Provider di default: DeepSeek, in linea con README e script ausiliari
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "deepseek").lower()
@@ -71,8 +79,22 @@ if not os.path.isdir(VECTORDB_PATH):
     raise Exception(
         f"Directory '{VECTORDB_PATH}' non trovata. Ricrea o committa l'indice FAISS."
     )
+BASE_INSTRUCTION = (
+    "Rispondi sempre in modo chiaro, tecnico, e senza ironia. "
+    "Non aggiungere battute, frasi umoristiche o riferimenti surreali. Concentrati solo sulla risoluzione del problema. "
+    "Se rilevi termini tecnici, aggiungi note a piè di pagina numerate con spiegazioni sintetiche. Se opportuno, includi un'immagine rilevante tramite Bing. "
+    "Termina ogni risposta con una domanda mirata per approfondire la richiesta dell'utente."
+)
 
 try:
+    if LLM_PROVIDER == "openai":
+        ping_url = "https://api.openai.com/v1/models"
+        headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
+    else:  # deepseek
+        ping_url = f"{DEEPSEEK_BASE_URL.rstrip('/')}/models"
+        headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
+    requests.get(ping_url, headers=headers, timeout=3).raise_for_status()
+
     if LLM_PROVIDER == "openai":
         embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
     else:  # deepseek
@@ -102,14 +124,13 @@ try:
             default_headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
         )
 
-    BASE_INSTRUCTION = (
-        "Rispondi sempre in modo chiaro, tecnico, e senza ironia. "
-        "Non aggiungere battute, frasi umoristiche o riferimenti surreali. Concentrati solo sulla risoluzione del problema. "
-        "Se rilevi termini tecnici, aggiungi note a piè di pagina numerate con spiegazioni sintetiche. Se opportuno, includi un'immagine rilevante tramite Bing. "
-        "Termina ogni risposta con una domanda mirata per approfondire la richiesta dell'utente."
-    )
-
     logger.info("✅ Ambiente base inizializzato correttamente.")
+except (openai.APIConnectionError, requests.exceptions.RequestException):
+    provider_name = "OpenAI" if LLM_PROVIDER == "openai" else "DeepSeek"
+    INIT_ERROR = (
+        f"Impossibile contattare l'API {provider_name}; verifica rete o chiave"
+    )
+    logger.error(INIT_ERROR)
 except Exception:
     logger.exception("❌ Errore durante l'inizializzazione della pipeline RAG:")
     raise
@@ -289,7 +310,11 @@ def build_rag(system_instruction: str) -> RetrievalQA:
     )
 
 # Costruisce le catene RAG per ogni agente all'avvio dell'app
-RAG_CHAINS = {agent_id: build_rag(prompt) for agent_id, prompt in AGENT_PROMPTS.items()}
+RAG_CHAINS = (
+    {agent_id: build_rag(prompt) for agent_id, prompt in AGENT_PROMPTS.items()}
+    if not INIT_ERROR
+    else {}
+)
 
 def applica_tooltip(testo: str) -> str:
     """Sostituisce i tooltip inline con note a piè di pagina numerate."""
@@ -381,6 +406,8 @@ def classify_query(question: str) -> int:
 
 @app.post("/ask")
 async def ask_question(request: Request):
+    if INIT_ERROR:
+        return JSONResponse(status_code=500, content={"error": INIT_ERROR})
     image_task = None
     try:
         payload = await request.json()
