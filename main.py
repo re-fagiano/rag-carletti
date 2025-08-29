@@ -129,11 +129,18 @@ try:
         )
 
     logger.info("✅ Ambiente base inizializzato correttamente.")
-except (openai.APIConnectionError, requests.exceptions.RequestException):
+except (openai.APIConnectionError, requests.exceptions.RequestException) as exc:
     provider_name = "OpenAI" if LLM_PROVIDER == "openai" else "DeepSeek"
-    INIT_ERROR = (
-        f"Impossibile contattare l'API {provider_name}; verifica rete o chiave"
-    )
+    if (
+        isinstance(exc, requests.exceptions.HTTPError)
+        and exc.response is not None
+        and exc.response.status_code == 401
+    ):
+        INIT_ERROR = f"Chiave API {provider_name} non valida"
+    else:
+        INIT_ERROR = (
+            f"Impossibile contattare l'API {provider_name}; verifica rete o chiave"
+        )
     logger.error(INIT_ERROR)
 except Exception:
     logger.exception("❌ Errore durante l'inizializzazione della pipeline RAG:")
