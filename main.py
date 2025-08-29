@@ -49,7 +49,11 @@ embeddings = None
 INIT_ERROR = None
 
 # Provider di default: DeepSeek, in linea con README e script ausiliari
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "deepseek").lower()
+_provider_env = os.getenv("LLM_PROVIDER")
+if not _provider_env or not _provider_env.strip():
+    LLM_PROVIDER = "deepseek"
+else:
+    LLM_PROVIDER = _provider_env.strip().lower()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
