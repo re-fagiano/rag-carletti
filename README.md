@@ -67,6 +67,32 @@ docker run -p 8000:8000 -e DEEPSEEK_API_KEY=<la tua chiave> \
     -e LLM_PROVIDER=deepseek rag-carletti
 ```
 
+## Uso con DeepSeek
+
+È possibile utilizzare i modelli di [DeepSeek](https://platform.deepseek.com/) come alternativa a OpenAI.
+
+1. **Ottenere la chiave**  
+   Registrati sulla piattaforma DeepSeek e genera una chiave API dal tuo pannello personale.  
+   Imposta la variabile d'ambiente `DEEPSEEK_API_KEY` con il valore ottenuto.
+
+2. **Variabili d'ambiente**
+   ```bash
+   export LLM_PROVIDER=deepseek
+   export DEEPSEEK_API_KEY=<la tua chiave>
+   export DEEPSEEK_MODEL=deepseek-chat   # oppure un altro modello supportato
+   export DEEPSEEK_API_BASE=https://api.deepseek.com  # opzionale
+   ```
+
+3. **Chiamata API di esempio**  
+   L'endpoint `https://api.deepseek.com/chat/completions` è compatibile con la sintassi delle API di OpenAI e supporta lo streaming opzionale (`"stream": true`).
+
+   ```bash
+   curl https://api.deepseek.com/chat/completions \\
+     -H "Authorization: Bearer $DEEPSEEK_API_KEY" \\
+     -H "Content-Type: application/json" \\
+     -d '{"model": "deepseek-chat", "messages": [{"role": "user", "content": "Ciao"}], "stream": false}'
+   ```
+
 ## Endpoint /ask
 L'endpoint accetta il campo JSON `query` e, opzionalmente, `agent_id` (o `agent`) per scegliere quale agente deve rispondere. Se il parametro è assente verrà usato Gustav (id `1`). È possibile indicare l'id numerico o il nome dell'agente (non viene fatta distinzione tra maiuscole e minuscole). Se il valore non è riconosciuto l'API restituisce errore `422`. L'elenco completo degli agenti è consultabile con `GET /agents`.
 
