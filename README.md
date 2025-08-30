@@ -43,8 +43,9 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    # export OPENAI_API_KEY=<chiave per OpenAI>
    # export LLM_PROVIDER=openai
    export BING_SEARCH_API_KEY=<opzionale per immagini>
-   export OPENAI_MODEL=<modello opzionale>
-   export ENABLE_IMAGE_SEARCH=true  # disabilita con false
+   export OPENAI_MODEL=<modello, default gpt-5>
+   export DEEPSEEK_MODEL=<modello, default deepseek-chat>
+   export ENABLE_IMAGE_SEARCH=false  # true solo se BING_SEARCH_API_KEY è impostata
    ```
 
 3. **Avvio dell'applicazione**
@@ -67,10 +68,26 @@ docker run -p 8000:8000 -e DEEPSEEK_API_KEY=<la tua chiave> \
     -e LLM_PROVIDER=deepseek rag-carletti
 ```
 
+## Variabili per Railway
+
+Se distribuisci il progetto su [Railway](https://railway.app), imposta le seguenti variabili ambiente:
+
+| Variabile | Descrizione | Default |
+|-----------|-------------|---------|
+| `LLM_PROVIDER` | Provider del modello (`openai` o `deepseek`) | `openai` |
+| `OPENAI_API_KEY` | Chiave API richiesta se `LLM_PROVIDER=openai` | – |
+| `OPENAI_MODEL` | Modello OpenAI utilizzato | `gpt-5` |
+| `DEEPSEEK_API_KEY` | Chiave API richiesta se `LLM_PROVIDER=deepseek` | – |
+| `DEEPSEEK_MODEL` | Modello DeepSeek utilizzato | `deepseek-chat` |
+| `BING_SEARCH_API_KEY` | Chiave per abilitare la ricerca immagini (opzionale) | – |
+| `ENABLE_IMAGE_SEARCH` | `false` di default; imposta `true` solo se fornisci la chiave Bing | `false` |
+
+Ricorda di mantenere `ENABLE_IMAGE_SEARCH=false` se non è disponibile una chiave Bing valida.
+
 ## Endpoint /ask
 L'endpoint accetta il campo JSON `query` e, opzionalmente, `agent_id` (o `agent`) per scegliere quale agente deve rispondere. Se il parametro è assente verrà usato Gustav (id `1`). È possibile indicare l'id numerico o il nome dell'agente (non viene fatta distinzione tra maiuscole e minuscole). Se il valore non è riconosciuto l'API restituisce errore `422`. L'elenco completo degli agenti è consultabile con `GET /agents`.
 
-La ricerca immagini tramite Bing può essere disabilitata globalmente impostando la variabile d'ambiente `ENABLE_IMAGE_SEARCH=false` oppure per singola richiesta passando `"include_image": false` nel payload.
+La ricerca immagini tramite Bing è opzionale: lascia `ENABLE_IMAGE_SEARCH=false` (impostazione consigliata) se non imposti `BING_SEARCH_API_KEY`; attivala con `true` solo quando la chiave è presente. È comunque possibile disabilitarla per una singola richiesta passando `"include_image": false` nel payload.
 
 Esempi di richiesta:
 ```bash
@@ -86,6 +103,7 @@ curl -X POST http://localhost:8000/ask \
 ## Aggiornamento dell'indice dei documenti
 
 Se modifichi o aggiungi file nella cartella `docs/` devi rigenerare la cartella `vectordb/` per riflettere i nuovi contenuti.
+Ricorda di utilizzare lo stesso provider e modello previsti in produzione: un indice creato con OpenAI non è compatibile con uno generato con DeepSeek (e viceversa).
 
 Puoi utilizzare uno dei seguenti script (richiedono la chiave API del provider selezionato):
 
