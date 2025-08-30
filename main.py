@@ -93,7 +93,7 @@ try:
         ping_url = "https://api.openai.com/v1/models"
         headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
     else:  # deepseek
-        ping_url = f"{DEEPSEEK_BASE_URL.rstrip('/')}/models"
+        ping_url = f"{DEEPSEEK_BASE_URL.rstrip('/')}/v1/models"
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
     requests.get(ping_url, headers=headers, timeout=3).raise_for_status()
 
