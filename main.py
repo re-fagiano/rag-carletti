@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 # LangChain / OpenAI
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_deepseek import ChatDeepSeek
 from langchain_community.vectorstores import FAISS
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
@@ -118,12 +119,11 @@ try:
             openai_api_key=OPENAI_API_KEY,
         )
     else:  # deepseek
-        llm = ChatOpenAI(
-            model_name=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
-            temperature=0,
-            openai_api_key=DEEPSEEK_API_KEY,
+        llm = ChatDeepSeek(
+            api_key=DEEPSEEK_API_KEY,
             base_url=DEEPSEEK_BASE_URL,
-            default_headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
+            model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+            temperature=0,
         )
 
     logger.info("✅ Ambiente base inizializzato correttamente.")
