@@ -7,6 +7,9 @@ WORKDIR /app
 # Copia tutto
 COPY . .
 
+# Installa i certificati
+RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
+
 # Installa le dipendenze
 RUN pip install --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
