@@ -139,6 +139,8 @@ except (openai.APIConnectionError, requests.exceptions.RequestException) as exc:
         INIT_ERROR = (
             f"Impossibile contattare l'API {provider_name}; verifica rete o chiave"
         )
+    logger.error("Errore DeepSeek: %s", exc)
+    logger.debug(traceback.format_exc())
     logger.error(INIT_ERROR)
 except Exception:
     logger.exception("❌ Errore durante l'inizializzazione della pipeline RAG:")
