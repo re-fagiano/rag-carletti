@@ -544,6 +544,19 @@ async def health():
     return {"status": "ok"}
 
 
+@app.get("/debug/ping")
+async def debug_ping():
+    try:
+        r = requests.get(
+            f"{DEEPSEEK_BASE_URL.rstrip('/')}/v1/models",
+            headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
+            timeout=5,
+        )
+        return {"status": r.status_code, "body": r.json()}
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
 @app.get("/agents")
 async def list_agents():
     """Restituisce l'elenco degli agenti configurati."""
