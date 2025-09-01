@@ -56,6 +56,8 @@ else:
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+# Normalizza l'URL rimuovendo suffisso /v1 e slash finali
+DEEPSEEK_BASE_URL = re.sub(r"/v1/?$", "", DEEPSEEK_BASE_URL).rstrip("/")
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
 ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
 
@@ -94,7 +96,7 @@ try:
         ping_url = "https://api.openai.com/v1/models"
         headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
     else:  # deepseek
-        ping_url = f"{DEEPSEEK_BASE_URL.rstrip('/')}/v1/models"
+        ping_url = f"{DEEPSEEK_BASE_URL}/v1/models"
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
     requests.get(ping_url, headers=headers, timeout=3).raise_for_status()
 
@@ -550,7 +552,7 @@ async def health():
 async def debug_ping():
     try:
         r = requests.get(
-            f"{DEEPSEEK_BASE_URL.rstrip('/')}/v1/models",
+            f"{DEEPSEEK_BASE_URL}/v1/models",
             headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
             timeout=5,
         )
