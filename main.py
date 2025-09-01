@@ -56,6 +56,7 @@ else:
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+DEEPSEEK_TIMEOUT = float(os.getenv("DEEPSEEK_TIMEOUT", "10"))
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
 ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
 
@@ -96,7 +97,7 @@ try:
     else:  # deepseek
         ping_url = f"{DEEPSEEK_BASE_URL.rstrip('/')}/v1/models"
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
-    requests.get(ping_url, headers=headers, timeout=3).raise_for_status()
+    requests.get(ping_url, headers=headers, timeout=DEEPSEEK_TIMEOUT).raise_for_status()
 
     if LLM_PROVIDER == "openai":
         embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
@@ -129,17 +130,23 @@ try:
     logger.info("✅ Ambiente base inizializzato correttamente.")
 except (openai.APIConnectionError, requests.exceptions.RequestException) as exc:
     provider_name = "OpenAI" if LLM_PROVIDER == "openai" else "DeepSeek"
-    if (
-        isinstance(exc, requests.exceptions.HTTPError)
-        and exc.response is not None
-        and exc.response.status_code == 401
-    ):
-        INIT_ERROR = f"Chiave API {provider_name} non valida"
+    if isinstance(exc, requests.exceptions.HTTPError) and exc.response is not None:
+        status = exc.response.status_code
+        body = exc.response.text
+        logger.error("Errore HTTP %s: %s", status, body)
+        if status == 401:
+            INIT_ERROR = (
+                f"Chiave API {provider_name} non valida (status {status}: {body})"
+            )
+        else:
+            INIT_ERROR = (
+                f"Errore HTTP {status} dall'API {provider_name}: {body}"
+            )
     else:
         INIT_ERROR = (
             f"Impossibile contattare l'API {provider_name}; verifica rete o chiave"
         )
-    logger.error("Errore DeepSeek: %s", exc)
+        logger.error("Errore contattando l'API %s: %s", provider_name, exc)
     logger.debug(traceback.format_exc())
     logger.error(INIT_ERROR)
 except Exception:
