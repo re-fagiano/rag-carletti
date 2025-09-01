@@ -42,10 +42,11 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    # Per usare OpenAI:
    # export OPENAI_API_KEY=<chiave per OpenAI>
    # export LLM_PROVIDER=openai
-   export BING_SEARCH_API_KEY=<opzionale per immagini>
-   export OPENAI_MODEL=<modello opzionale>
-   export ENABLE_IMAGE_SEARCH=true  # disabilita con false
-   ```
+    export BING_SEARCH_API_KEY=<opzionale per immagini>
+    export OPENAI_MODEL=<modello opzionale>
+    export ENABLE_IMAGE_SEARCH=true  # disabilita con false
+    export DEEPSEEK_TIMEOUT=10       # timeout API DeepSeek (s)
+    ```
 
 3. **Avvio dell'applicazione**
    ```bash
