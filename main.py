@@ -93,10 +93,14 @@ try:
     if LLM_PROVIDER == "openai":
         ping_url = "https://api.openai.com/v1/models"
         headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
+        resp = requests.get(ping_url, headers=headers, timeout=3)
+        resp.raise_for_status()
     else:  # deepseek
         ping_url = f"{DEEPSEEK_BASE_URL.rstrip('/')}/v1/models"
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
-    requests.get(ping_url, headers=headers, timeout=3).raise_for_status()
+        resp = requests.get(ping_url, headers=headers, timeout=3)
+        if resp.status_code not in (200, 404, 405):
+            resp.raise_for_status()
 
     if LLM_PROVIDER == "openai":
         embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
@@ -129,17 +133,19 @@ try:
     logger.info("✅ Ambiente base inizializzato correttamente.")
 except (openai.APIConnectionError, requests.exceptions.RequestException) as exc:
     provider_name = "OpenAI" if LLM_PROVIDER == "openai" else "DeepSeek"
-    if (
-        isinstance(exc, requests.exceptions.HTTPError)
-        and exc.response is not None
-        and exc.response.status_code == 401
-    ):
-        INIT_ERROR = f"Chiave API {provider_name} non valida"
+    if isinstance(exc, requests.exceptions.HTTPError) and exc.response is not None:
+        status = exc.response.status_code
+        if status == 401:
+            INIT_ERROR = f"Chiave API {provider_name} non valida"
+        else:
+            INIT_ERROR = f"Errore HTTP {status} nel contattare l'API {provider_name}"
+    elif isinstance(exc, requests.exceptions.ConnectionError):
+        INIT_ERROR = f"Connessione a {provider_name} non riuscita"
     else:
         INIT_ERROR = (
             f"Impossibile contattare l'API {provider_name}; verifica rete o chiave"
         )
-    logger.error("Errore DeepSeek: %s", exc)
+    logger.error("Errore %s: %s", provider_name, exc)
     logger.debug(traceback.format_exc())
     logger.error(INIT_ERROR)
 except Exception:
