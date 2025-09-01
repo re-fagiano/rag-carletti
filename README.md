@@ -38,6 +38,7 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    Imposta la chiave API corrispondente prima di avviare l'applicazione:
    ```bash
    export DEEPSEEK_API_KEY=<chiave per DeepSeek>
+   export DEEPSEEK_BASE_URL=https://api.deepseek.com  # senza suffisso /v1
    export LLM_PROVIDER=deepseek            # predefinito (oppure openai)
    # Per usare OpenAI:
    # export OPENAI_API_KEY=<chiave per OpenAI>
@@ -46,6 +47,7 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    export OPENAI_MODEL=<modello opzionale>
    export ENABLE_IMAGE_SEARCH=true  # disabilita con false
    ```
+   Se fornisci una variabile `DEEPSEEK_BASE_URL`, assicurati che l'URL non termini con `/v1`.
 
 3. **Avvio dell'applicazione**
    ```bash
