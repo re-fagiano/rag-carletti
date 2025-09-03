@@ -42,11 +42,20 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    # Per usare OpenAI:
    # export OPENAI_API_KEY=<chiave per OpenAI>
    # export LLM_PROVIDER=openai
-    export BING_SEARCH_API_KEY=<opzionale per immagini>
-    export OPENAI_MODEL=<modello opzionale>
+   export BING_SEARCH_API_KEY=<opzionale per immagini>
+   export OPENAI_MODEL=<modello opzionale>
     export ENABLE_IMAGE_SEARCH=true  # disabilita con false
     export DEEPSEEK_TIMEOUT=10       # timeout API DeepSeek (s)
+    export DEEPSEEK_BASE_URL=https://api.deepseek.com  # senza suffisso /v1
     ```
+
+   Per controllare la connettività con DeepSeek è disponibile un endpoint di debug:
+
+   ```bash
+   curl http://localhost:8000/debug/ping-deepseek
+   ```
+
+   L'API restituisce lo status HTTP e il corpo della chiamata a `/v1/models`.
 
 3. **Avvio dell'applicazione**
    ```bash
