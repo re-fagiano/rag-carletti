@@ -38,6 +38,23 @@ async def root():
     return FileResponse("static/index.html")
 
 
+@app.get("/debug/ping-deepseek")
+async def debug_ping_deepseek():
+    """Ping di debug verso l'endpoint DeepSeek /v1/models."""
+    ping_url = f"{DEEPSEEK_BASE_URL.rstrip('/')}/v1/models"
+    if not DEEPSEEK_API_KEY:
+        return JSONResponse(
+            {"error": "DEEPSEEK_API_KEY non configurata"}, status_code=500
+        )
+    headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
+    try:
+        resp = requests.get(ping_url, headers=headers, timeout=DEEPSEEK_TIMEOUT)
+        return JSONResponse({"status": resp.status_code, "body": resp.text})
+    except Exception as exc:
+        logger.error("Errore pingando DeepSeek: %s", exc)
+        return JSONResponse({"error": str(exc)}, status_code=500)
+
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 CONVERSATIONS: dict[str, ConversationBufferMemory] = {}
