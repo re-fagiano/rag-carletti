@@ -49,6 +49,8 @@ def main() -> None:
     provider = args.provider.lower()
     if provider == "openai":
         api_key = os.getenv("OPENAI_API_KEY")
+        if api_key:
+            api_key = api_key.strip()
         if not api_key:
             raise Exception(
                 "Devi impostare la variabile d'ambiente OPENAI_API_KEY oppure usare --provider deepseek"
@@ -56,6 +58,8 @@ def main() -> None:
         embeddings = OpenAIEmbeddings(openai_api_key=api_key)
     else:  # deepseek
         api_key = os.getenv("DEEPSEEK_API_KEY")
+        if api_key:
+            api_key = api_key.strip()
         base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
         if not api_key:
             raise Exception(
