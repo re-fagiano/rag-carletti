@@ -55,11 +55,11 @@ else:
     LLM_PROVIDER = _provider_env.strip().lower()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if OPENAI_API_KEY:
-    OPENAI_API_KEY = OPENAI_API_KEY.strip()
+    OPENAI_API_KEY = re.sub(r"\s+", "", OPENAI_API_KEY or "")
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 if DEEPSEEK_API_KEY:
-    DEEPSEEK_API_KEY = DEEPSEEK_API_KEY.strip()
+    DEEPSEEK_API_KEY = re.sub(r"\s+", "", DEEPSEEK_API_KEY or "")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 DEEPSEEK_TIMEOUT = float(os.getenv("DEEPSEEK_TIMEOUT", "10"))
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
