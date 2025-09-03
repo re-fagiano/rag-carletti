@@ -14,6 +14,7 @@ from langchain_community.document_loaders import TextLoader, DirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import argparse
 import os
+import re
 
 
 def load_txt_documents() -> list:
@@ -61,7 +62,7 @@ def main() -> None:
     if provider == "openai":
         api_key = os.getenv("OPENAI_API_KEY")
         if api_key:
-            api_key = api_key.strip()
+            api_key = re.sub(r"\s+", "", api_key or "")
         if not api_key:
             raise Exception(
                 "Devi impostare la variabile d'ambiente OPENAI_API_KEY oppure usare --provider deepseek"
@@ -70,7 +71,7 @@ def main() -> None:
     else:  # deepseek
         api_key = os.getenv("DEEPSEEK_API_KEY")
         if api_key:
-            api_key = api_key.strip()
+            api_key = re.sub(r"\s+", "", api_key or "")
         base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
         if not api_key:
             raise Exception(
