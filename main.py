@@ -7,7 +7,7 @@ import requests
 import openai
 from types import MappingProxyType
 from typing import Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -72,8 +72,8 @@ class AskRequest(BaseModel):
     query: str
     agent_id: Optional[int] = None
     agent: Optional[str] = None
-    session_id: Optional[str] = None
-    include_image: bool = True
+    session_id: Optional[str] = "default"
+    include_image: Optional[bool] = True
 
 # Provider di default: DeepSeek, in linea con README e script ausiliari
 _provider_env = os.getenv("LLM_PROVIDER")
@@ -102,10 +102,7 @@ DEEPSEEK_TIMEOUT = float(os.getenv("DEEPSEEK_TIMEOUT", "10"))
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
 ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
 
-EMBEDDINGS_PROVIDER = os.getenv("EMBEDDINGS_PROVIDER", "openai").strip().lower()
-HUGGINGFACE_MODEL = os.getenv(
-    "HUGGINGFACE_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
-)
+EMBEDDINGS_PROVIDER = os.getenv("EMBEDDINGS_PROVIDER", "").strip().lower()
 
 if OPENAI_API_KEY and not DEEPSEEK_API_KEY:
     LLM_PROVIDER = "openai"
@@ -147,17 +144,19 @@ if not INIT_ERROR:
             headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
         requests.get(ping_url, headers=headers, timeout=DEEPSEEK_TIMEOUT).raise_for_status()
 
-        if EMBEDDINGS_PROVIDER == "openai":
-            if not OPENAI_API_KEY:
-                raise ValueError(
-                    "OPENAI_API_KEY mancante per EMBEDDINGS_PROVIDER=openai"
-                )
+        if EMBEDDINGS_PROVIDER == "openai" and OPENAI_API_KEY:
             embeddings = OpenAIEmbeddings(
                 openai_api_key=OPENAI_API_KEY,
                 base_url=OPENAI_BASE_URL,
             )
+        elif EMBEDDINGS_PROVIDER == "huggingface":
+            model_name = os.getenv(
+                "HUGGINGFACE_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
+            )
+            embeddings = HuggingFaceEmbeddings(model_name=model_name)
         else:
-            embeddings = HuggingFaceEmbeddings(model_name=HUGGINGFACE_MODEL)
+            # se usi DeepSeek come LLM, carica l'indice FAISS senza ridefinire embedding
+            embeddings = None
 
         db = FAISS.load_local(
             VECTORDB_PATH, embeddings, allow_dangerous_deserialization=True
@@ -380,12 +379,18 @@ def build_rag(system_instruction: str) -> RetrievalQA:
         },
     )
 
-# Costruisce le catene RAG per ogni agente all'avvio dell'app
-RAG_CHAINS = (
-    {agent_id: build_rag(prompt) for agent_id, prompt in AGENT_PROMPTS.items()}
-    if not INIT_ERROR
-    else {}
-)
+# Costruisce le catene RAG per ogni agente all'avvio dell'app in modo sicuro
+RAG_CHAINS: dict[int, RetrievalQA] = {}
+if not INIT_ERROR:
+    try:
+        RAG_CHAINS = {
+            agent_id: build_rag(prompt) for agent_id, prompt in AGENT_PROMPTS.items()
+        }
+    except Exception as exc:
+        RAG_CHAINS = {}
+        logger.warning(
+            "Impossibile costruire le catene RAG, uso fallback: %s", exc
+        )
 
 def applica_tooltip(testo: str) -> str:
     """Sostituisce i tooltip inline con note a piè di pagina numerate."""
@@ -476,7 +481,7 @@ def classify_query(question: str) -> int:
 
 
 @app.post("/ask")
-async def ask_question(payload: AskRequest):
+async def ask_question(payload: AskRequest, request: Request):
     if INIT_ERROR:
         return JSONResponse(status_code=500, content={"error": INIT_ERROR})
     image_task = None
@@ -564,20 +569,26 @@ async def ask_question(payload: AskRequest):
                 )
             else:
                 rag = RAG_CHAINS.get(agent_id)
-                try:
-                    if rag:
+                if rag:
+                    try:
                         question_with_context = (
                             f"{memory.buffer}\nUtente: {user_question}" if memory.buffer else user_question
                         )
                         answer = await rag.arun(question_with_context)
-                    else:
-                        raise ValueError("No RAG chain available")
-                except AssertionError:
-                    await image_task
-                    msg = "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
-                    return JSONResponse(status_code=500, content={"error": msg})
-                except Exception:
-                    logger.warning("RAG fallita, uso fallback")
+                    except AssertionError:
+                        await image_task
+                        msg = (
+                            "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
+                        )
+                        return JSONResponse(status_code=500, content={"error": msg})
+                    except Exception:
+                        logger.warning("RAG fallita, uso fallback")
+                        fallback_prompt = (
+                            f"{AGENT_PROMPTS[agent_id]}\nSintesi: {summary}\nDomanda: {user_question}"
+                        )
+                        answer = await llm.apredict(fallback_prompt)
+                else:
+                    logger.warning("Catena RAG assente, uso fallback")
                     fallback_prompt = (
                         f"{AGENT_PROMPTS[agent_id]}\nSintesi: {summary}\nDomanda: {user_question}"
                     )
