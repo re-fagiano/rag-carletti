@@ -6,7 +6,8 @@ import asyncio
 import requests
 import openai
 from types import MappingProxyType
-from fastapi import FastAPI, Request, HTTPException
+from typing import Optional
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -14,9 +15,11 @@ from fastapi.staticfiles import StaticFiles
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_deepseek import ChatDeepSeek
 from langchain_community.vectorstores import FAISS
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
+from pydantic import BaseModel
 from dotenv import load_dotenv
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -64,6 +67,14 @@ retriever = None
 embeddings = None
 INIT_ERROR = None
 
+
+class AskRequest(BaseModel):
+    query: str
+    agent_id: Optional[int] = None
+    agent: Optional[str] = None
+    session_id: Optional[str] = None
+    include_image: bool = True
+
 # Provider di default: DeepSeek, in linea con README e script ausiliari
 _provider_env = os.getenv("LLM_PROVIDER")
 if not _provider_env or not _provider_env.strip():
@@ -91,6 +102,19 @@ DEEPSEEK_TIMEOUT = float(os.getenv("DEEPSEEK_TIMEOUT", "10"))
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
 ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
 
+# Determina il provider delle embedding: se non specificato, usa
+# OpenAI solo se è presente la chiave API, altrimenti ricade su
+# un modello locale HuggingFace.
+_emb_provider_env = os.getenv("EMBEDDINGS_PROVIDER")
+if _emb_provider_env and _emb_provider_env.strip():
+    EMBEDDINGS_PROVIDER = _emb_provider_env.strip().lower()
+else:
+    EMBEDDINGS_PROVIDER = "openai" if OPENAI_API_KEY else "huggingface"
+
+HUGGINGFACE_MODEL = os.getenv(
+    "HUGGINGFACE_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
+)
+
 if OPENAI_API_KEY and not DEEPSEEK_API_KEY:
     LLM_PROVIDER = "openai"
 
@@ -111,7 +135,7 @@ if LLM_PROVIDER == "deepseek" and not DEEPSEEK_API_KEY:
 
 VECTORDB_PATH = "vectordb/"
 if not os.path.isdir(VECTORDB_PATH):
-    raise Exception(
+    INIT_ERROR = (
         f"Directory '{VECTORDB_PATH}' non trovata. Ricrea o committa l'indice FAISS."
     )
 BASE_INSTRUCTION = (
@@ -121,72 +145,79 @@ BASE_INSTRUCTION = (
     "Termina ogni risposta con una domanda mirata per approfondire la richiesta dell'utente."
 )
 
-try:
-    if LLM_PROVIDER == "openai":
-        ping_url = f"{OPENAI_BASE_URL.rstrip('/')}/models"
-        headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
-    else:  # deepseek
-        ping_url = f"{DEEPSEEK_API_BASE}/models"
-        headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
-    requests.get(ping_url, headers=headers, timeout=DEEPSEEK_TIMEOUT).raise_for_status()
+if not INIT_ERROR:
+    try:
+        if LLM_PROVIDER == "openai":
+            ping_url = f"{OPENAI_BASE_URL.rstrip('/')}/models"
+            headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
+        else:  # deepseek
+            ping_url = f"{DEEPSEEK_API_BASE}/models"
+            headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
+        requests.get(ping_url, headers=headers, timeout=DEEPSEEK_TIMEOUT).raise_for_status()
 
-    if LLM_PROVIDER == "openai":
-        embeddings = OpenAIEmbeddings(
-            openai_api_key=OPENAI_API_KEY,
-            base_url=OPENAI_BASE_URL,
-        )
-    else:  # deepseek
-        embeddings = OpenAIEmbeddings(
-            openai_api_key=DEEPSEEK_API_KEY,
-            base_url=DEEPSEEK_API_BASE,
-            default_headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
-        )
-    db = FAISS.load_local(
-        VECTORDB_PATH, embeddings, allow_dangerous_deserialization=True
-    )
-    retriever = db.as_retriever(search_kwargs={"k": 5})
+        if EMBEDDINGS_PROVIDER == "openai":
+            if OPENAI_API_KEY:
+                embeddings = OpenAIEmbeddings(
+                    openai_api_key=OPENAI_API_KEY,
+                    base_url=OPENAI_BASE_URL,
+                )
+            else:
+                logger.warning(
+                    "OPENAI_API_KEY mancante per EMBEDDINGS_PROVIDER=openai; "
+                    "uso HuggingFaceEmbeddings"
+                )
+                embeddings = HuggingFaceEmbeddings(
+                    model_name=HUGGINGFACE_MODEL
+                )
+        else:
+            embeddings = HuggingFaceEmbeddings(model_name=HUGGINGFACE_MODEL)
 
-    if LLM_PROVIDER == "openai":
-        # Default model can be overridden via OPENAI_MODEL and must exist in your account
-        llm = ChatOpenAI(
-            model_name=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
-            temperature=0,
-            openai_api_key=OPENAI_API_KEY,
-            base_url=OPENAI_BASE_URL,
+        db = FAISS.load_local(
+            VECTORDB_PATH, embeddings, allow_dangerous_deserialization=True
         )
-    else:  # deepseek
-        llm = ChatDeepSeek(
-            api_key=DEEPSEEK_API_KEY,
-            base_url=DEEPSEEK_API_BASE,
-            model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
-            temperature=0,
-        )
+        retriever = db.as_retriever(search_kwargs={"k": 5})
 
-    logger.info("✅ Ambiente base inizializzato correttamente.")
-except (openai.APIConnectionError, requests.exceptions.RequestException) as exc:
-    provider_name = "OpenAI" if LLM_PROVIDER == "openai" else "DeepSeek"
-    if isinstance(exc, requests.exceptions.HTTPError) and exc.response is not None:
-        status = exc.response.status_code
-        body = exc.response.text
-        logger.error("Errore HTTP %s: %s", status, body)
-        if status == 401:
-            INIT_ERROR = (
-                f"Chiave API {provider_name} non valida (status {status}: {body})"
+        if LLM_PROVIDER == "openai":
+            # Default model can be overridden via OPENAI_MODEL and must exist in your account
+            llm = ChatOpenAI(
+                model_name=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
+                temperature=0,
+                openai_api_key=OPENAI_API_KEY,
+                base_url=OPENAI_BASE_URL,
             )
+        else:  # deepseek
+            llm = ChatDeepSeek(
+                api_key=DEEPSEEK_API_KEY,
+                base_url=DEEPSEEK_API_BASE,
+                model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+                temperature=0,
+            )
+
+        logger.info("✅ Ambiente base inizializzato correttamente.")
+    except (openai.APIConnectionError, requests.exceptions.RequestException) as exc:
+        provider_name = "OpenAI" if LLM_PROVIDER == "openai" else "DeepSeek"
+        if isinstance(exc, requests.exceptions.HTTPError) and exc.response is not None:
+            status = exc.response.status_code
+            body = exc.response.text
+            logger.error("Errore HTTP %s: %s", status, body)
+            if status == 401:
+                INIT_ERROR = (
+                    f"Chiave API {provider_name} non valida (status {status}: {body})"
+                )
+            else:
+                INIT_ERROR = (
+                    f"Errore HTTP {status} dall'API {provider_name}: {body}"
+                )
         else:
             INIT_ERROR = (
-                f"Errore HTTP {status} dall'API {provider_name}: {body}"
+                f"Impossibile contattare l'API {provider_name}; verifica rete o chiave"
             )
-    else:
-        INIT_ERROR = (
-            f"Impossibile contattare l'API {provider_name}; verifica rete o chiave"
-        )
-        logger.error("Errore contattando l'API %s: %s", provider_name, exc)
-    logger.debug(traceback.format_exc())
-    logger.error(INIT_ERROR)
-except Exception:
-    logger.exception("❌ Errore durante l'inizializzazione della pipeline RAG:")
-    raise
+            logger.error("Errore contattando l'API %s: %s", provider_name, exc)
+        logger.debug(traceback.format_exc())
+        logger.error(INIT_ERROR)
+    except Exception as exc:
+        INIT_ERROR = f"Errore durante l'inizializzazione della pipeline RAG: {exc}"
+        logger.exception("❌ Errore durante l'inizializzazione della pipeline RAG:")
 
 TOOLTIPS = {
     "filtro": "Componente da pulire regolarmente per evitare intasamenti e cattivi odori.",
@@ -458,14 +489,13 @@ def classify_query(question: str) -> int:
 
 
 @app.post("/ask")
-async def ask_question(request: Request):
+async def ask_question(payload: AskRequest):
     if INIT_ERROR:
         return JSONResponse(status_code=500, content={"error": INIT_ERROR})
     image_task = None
     try:
-        payload = await request.json()
-        user_question = payload.get("query", "").strip()
-        session_id = payload.get("session_id", "default")
+        user_question = payload.query.strip()
+        session_id = payload.session_id or "default"
         memory = CONVERSATIONS.setdefault(
             session_id, ConversationBufferMemory(return_messages=False)
         )
@@ -476,7 +506,7 @@ async def ask_question(request: Request):
             )
 
         # Recupera l'id dell'agente, accettando sia 'agent_id' che 'agent'
-        agent_raw = payload.get("agent_id") or payload.get("agent")
+        agent_raw = payload.agent_id or payload.agent
         if agent_raw is None:
             agent_id = classify_query(user_question)
         else:
@@ -504,8 +534,10 @@ async def ask_question(request: Request):
                         detail={"error": "Invalid agent", "agenti": AGENTS},
                     )
 
-        include_image = bool(payload.get("include_image", True))
-        image_task = asyncio.create_task(cerca_immagine_bing(user_question, include_image))
+        include_image = bool(payload.include_image)
+        image_task = asyncio.create_task(
+            cerca_immagine_bing(user_question, include_image)
+        )
 
         logger.info(f"▶️ Ricevuta query: {user_question!r} per agente {agent_id}")
 
@@ -544,16 +576,25 @@ async def ask_question(request: Request):
                     "Per assistenza su guasti o riparazioni, chiedi a Gustav, il tecnico esperto."
                 )
             else:
-                rag = RAG_CHAINS[agent_id]
+                rag = RAG_CHAINS.get(agent_id)
                 try:
-                    question_with_context = (
-                        f"{memory.buffer}\nUtente: {user_question}" if memory.buffer else user_question
-                    )
-                    answer = await rag.arun(question_with_context)
+                    if rag:
+                        question_with_context = (
+                            f"{memory.buffer}\nUtente: {user_question}" if memory.buffer else user_question
+                        )
+                        answer = await rag.arun(question_with_context)
+                    else:
+                        raise ValueError("No RAG chain available")
                 except AssertionError:
                     await image_task
                     msg = "Indice FAISS non compatibile. Ricostruisci 'vectordb/' con lo stesso modello di embedding."
                     return JSONResponse(status_code=500, content={"error": msg})
+                except Exception:
+                    logger.warning("RAG fallita, uso fallback")
+                    fallback_prompt = (
+                        f"{AGENT_PROMPTS[agent_id]}\nSintesi: {summary}\nDomanda: {user_question}"
+                    )
+                    answer = await llm.apredict(fallback_prompt)
 
         # Aggiorna la memoria con l'interazione corrente
         memory.chat_memory.add_user_message(user_question)
