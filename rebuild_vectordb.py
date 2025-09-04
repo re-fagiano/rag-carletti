@@ -62,13 +62,18 @@ def main() -> None:
         if api_key:
             api_key = re.sub(r"\s+", "", api_key or "")
         base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+        if base_url.rstrip("/").endswith("/v1"):
+            base_url = base_url.rstrip("/")[:-3]
+        base_url = base_url.rstrip("/")
+        api_base = f"{base_url}/v1"
+        os.environ["DEEPSEEK_API_BASE"] = api_base
         if not api_key:
             raise Exception(
                 "Devi impostare la variabile d'ambiente DEEPSEEK_API_KEY per usare --provider deepseek"
             )
         embeddings = OpenAIEmbeddings(
             openai_api_key=api_key,
-            base_url=base_url,
+            base_url=api_base,
             default_headers={"Authorization": f"Bearer {api_key}"},
         )
 

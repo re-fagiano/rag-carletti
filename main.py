@@ -41,7 +41,7 @@ async def root():
 @app.get("/debug/ping-deepseek")
 async def debug_ping_deepseek():
     """Ping di debug verso l'endpoint DeepSeek /v1/models."""
-    ping_url = f"{DEEPSEEK_BASE_URL}/v1/models"
+    ping_url = f"{DEEPSEEK_API_BASE}/models"
     if not DEEPSEEK_API_KEY:
         return JSONResponse(
             {"error": "DEEPSEEK_API_KEY non configurata"}, status_code=500
@@ -80,12 +80,13 @@ OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 if DEEPSEEK_API_KEY:
     DEEPSEEK_API_KEY = re.sub(r"\s+", "", DEEPSEEK_API_KEY or "")
-# Normalize base URL to avoid duplicating trailing '/v1'
+# Normalize base URL and derive API base with '/v1'
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-if DEEPSEEK_BASE_URL.rstrip('/').endswith('/v1'):
-    DEEPSEEK_BASE_URL = DEEPSEEK_BASE_URL.rstrip('/')
-    DEEPSEEK_BASE_URL = DEEPSEEK_BASE_URL[:-3]
-DEEPSEEK_BASE_URL = DEEPSEEK_BASE_URL.rstrip('/')
+if DEEPSEEK_BASE_URL.rstrip("/").endswith("/v1"):
+    DEEPSEEK_BASE_URL = DEEPSEEK_BASE_URL.rstrip("/")[:-3]
+DEEPSEEK_BASE_URL = DEEPSEEK_BASE_URL.rstrip("/")
+DEEPSEEK_API_BASE = f"{DEEPSEEK_BASE_URL}/v1"
+os.environ["DEEPSEEK_API_BASE"] = DEEPSEEK_API_BASE
 DEEPSEEK_TIMEOUT = float(os.getenv("DEEPSEEK_TIMEOUT", "10"))
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
 ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
@@ -125,7 +126,7 @@ try:
         ping_url = f"{OPENAI_BASE_URL.rstrip('/')}/models"
         headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
     else:  # deepseek
-        ping_url = f"{DEEPSEEK_BASE_URL}/v1/models"
+        ping_url = f"{DEEPSEEK_API_BASE}/models"
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
     requests.get(ping_url, headers=headers, timeout=DEEPSEEK_TIMEOUT).raise_for_status()
 
@@ -137,7 +138,7 @@ try:
     else:  # deepseek
         embeddings = OpenAIEmbeddings(
             openai_api_key=DEEPSEEK_API_KEY,
-            base_url=DEEPSEEK_BASE_URL,
+            base_url=DEEPSEEK_API_BASE,
             default_headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
         )
     db = FAISS.load_local(
@@ -156,7 +157,7 @@ try:
     else:  # deepseek
         llm = ChatDeepSeek(
             api_key=DEEPSEEK_API_KEY,
-            base_url=DEEPSEEK_BASE_URL,
+            api_base=DEEPSEEK_API_BASE,
             model=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
             temperature=0,
         )
@@ -591,7 +592,7 @@ async def health():
 async def debug_ping():
     try:
         r = requests.get(
-            f"{DEEPSEEK_BASE_URL}/v1/models",
+            f"{DEEPSEEK_API_BASE}/models",
             headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
             timeout=5,
         )
