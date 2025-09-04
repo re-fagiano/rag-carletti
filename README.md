@@ -45,11 +45,21 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    # export LLM_PROVIDER=openai
    export BING_SEARCH_API_KEY=<opzionale per immagini>
    export OPENAI_MODEL=<modello opzionale>
+<<<<<<< codex/fix-chatbot-response-error-n904vj
+   export ENABLE_IMAGE_SEARCH=true  # disabilita con false
+   export DEEPSEEK_TIMEOUT=10       # timeout API DeepSeek (s)
+   export DEEPSEEK_BASE_URL=https://api.deepseek.com/v1  # includi /v1
+   export DEEPSEEK_EMBEDDING_MODEL=deepseek-embedding  # modello embedding DeepSeek
+   export OPENAI_BASE_URL=https://api.openai.com/v1   # personalizza se usi endpoint compatibili
+   export OPENAI_EMBEDDING_MODEL=text-embedding-3-small  # modello embedding OpenAI
+   ```
+=======
     export ENABLE_IMAGE_SEARCH=true  # disabilita con false
     export DEEPSEEK_TIMEOUT=10       # timeout API DeepSeek (s)
     export DEEPSEEK_BASE_URL=https://api.deepseek.com  # senza suffisso /v1
     export OPENAI_BASE_URL=https://api.openai.com/v1   # personalizza se usi endpoint compatibili
     ```
+>>>>>>> main
 
    Per controllare la connettività con DeepSeek è disponibile un endpoint di debug:
 
