@@ -74,6 +74,9 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if OPENAI_API_KEY:
     OPENAI_API_KEY = re.sub(r"\s+", "", OPENAI_API_KEY or "")
 
+# Consente di sovrascrivere l'endpoint OpenAI, utile per ambienti personalizzati.
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 if DEEPSEEK_API_KEY:
     DEEPSEEK_API_KEY = re.sub(r"\s+", "", DEEPSEEK_API_KEY or "")
@@ -114,7 +117,7 @@ BASE_INSTRUCTION = (
 
 try:
     if LLM_PROVIDER == "openai":
-        ping_url = "https://api.openai.com/v1/models"
+        ping_url = f"{OPENAI_BASE_URL.rstrip('/')}/models"
         headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
     else:  # deepseek
         ping_url = f"{DEEPSEEK_BASE_URL.rstrip('/')}/v1/models"
@@ -122,7 +125,10 @@ try:
     requests.get(ping_url, headers=headers, timeout=DEEPSEEK_TIMEOUT).raise_for_status()
 
     if LLM_PROVIDER == "openai":
-        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+        embeddings = OpenAIEmbeddings(
+            openai_api_key=OPENAI_API_KEY,
+            base_url=OPENAI_BASE_URL,
+        )
     else:  # deepseek
         embeddings = OpenAIEmbeddings(
             openai_api_key=DEEPSEEK_API_KEY,
@@ -140,6 +146,7 @@ try:
             model_name=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
             temperature=0,
             openai_api_key=OPENAI_API_KEY,
+            base_url=OPENAI_BASE_URL,
         )
     else:  # deepseek
         llm = ChatDeepSeek(
