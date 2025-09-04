@@ -82,9 +82,10 @@ if DEEPSEEK_API_KEY:
     DEEPSEEK_API_KEY = re.sub(r"\s+", "", DEEPSEEK_API_KEY or "")
 # Normalize base URL and derive API base with '/v1'
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-if DEEPSEEK_BASE_URL.rstrip("/").endswith("/v1"):
-    DEEPSEEK_BASE_URL = DEEPSEEK_BASE_URL.rstrip("/")[:-3]
-DEEPSEEK_BASE_URL = DEEPSEEK_BASE_URL.rstrip("/")
+if DEEPSEEK_BASE_URL.rstrip('/').endswith('/v1'):
+    DEEPSEEK_BASE_URL = DEEPSEEK_BASE_URL.rstrip('/')
+    DEEPSEEK_BASE_URL = DEEPSEEK_BASE_URL[:-3]
+DEEPSEEK_BASE_URL = DEEPSEEK_BASE_URL.rstrip('/')
 DEEPSEEK_API_BASE = f"{DEEPSEEK_BASE_URL}/v1"
 os.environ["DEEPSEEK_API_BASE"] = DEEPSEEK_API_BASE
 DEEPSEEK_TIMEOUT = float(os.getenv("DEEPSEEK_TIMEOUT", "10"))
