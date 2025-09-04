@@ -35,6 +35,10 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
 2. **Variabili d'ambiente**
    È possibile scegliere il provider del modello tramite `LLM_PROVIDER` (`deepseek` predefinito oppure `openai`).
    Se `OPENAI_API_KEY` è presente e `DEEPSEEK_API_KEY` assente, il provider viene impostato automaticamente su `openai`.
+   Le *embedding* possono essere gestite da un provider separato tramite `EMBEDDINGS_PROVIDER`:
+   - `openai` (predefinito): richiede `OPENAI_API_KEY`.
+   - `huggingface`: usa un modello locale configurabile con `HUGGINGFACE_MODEL`.
+   DeepSeek non espone un endpoint `/embeddings`, quindi con `LLM_PROVIDER=deepseek` è necessario impostare `EMBEDDINGS_PROVIDER=openai` (con una chiave OpenAI valida) oppure usare un modello locale.
    Per endpoint compatibili (es. proxy OpenAI), specifica `OPENAI_BASE_URL` includendo il suffisso `/v1`.
    Imposta la chiave API corrispondente prima di avviare l'applicazione:
    ```bash
@@ -49,6 +53,8 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    export DEEPSEEK_TIMEOUT=10       # timeout API DeepSeek (s)
    export DEEPSEEK_BASE_URL=https://api.deepseek.com  # senza suffisso /v1
    export OPENAI_BASE_URL=https://api.openai.com/v1   # personalizza se usi endpoint compatibili
+   export EMBEDDINGS_PROVIDER=openai  # oppure huggingface
+   export HUGGINGFACE_MODEL=sentence-transformers/all-MiniLM-L6-v2
    ```
 
    Per controllare la connettività con DeepSeek è disponibile un endpoint di debug:
@@ -80,7 +86,19 @@ docker run -p 8000:8000 -e DEEPSEEK_API_KEY=<la tua chiave> \
 ```
 
 ## Endpoint /ask
-L'endpoint accetta il campo JSON `query` e, opzionalmente, `agent_id` (o `agent`) per scegliere quale agente deve rispondere. Se il parametro è assente verrà usato Gustav (id `1`). È possibile indicare l'id numerico o il nome dell'agente (non viene fatta distinzione tra maiuscole e minuscole). Se il valore non è riconosciuto l'API restituisce errore `422`. L'elenco completo degli agenti è consultabile con `GET /agents`.
+L'endpoint accetta una richiesta JSON conforme al seguente schema:
+
+```json
+{
+  "query": "...",            // domanda da porre (obbligatorio)
+  "agent_id": 1,              // opzionale, id numerico dell'agente
+  "agent": "gustav",         // alternativa testuale ad agent_id
+  "session_id": "abc123",    // opzionale, identifica la conversazione
+  "include_image": true       // opzionale, default true
+}
+```
+
+Se né `agent_id` né `agent` sono specificati viene selezionato automaticamente un agente in base alla domanda. L'elenco completo degli agenti è consultabile con `GET /agents`.
 
 La ricerca immagini tramite Bing può essere disabilitata globalmente impostando la variabile d'ambiente `ENABLE_IMAGE_SEARCH=false` oppure per singola richiesta passando `"include_image": false` nel payload.
 
