@@ -48,7 +48,9 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
     export ENABLE_IMAGE_SEARCH=true  # disabilita con false
     export DEEPSEEK_TIMEOUT=10       # timeout API DeepSeek (s)
     export DEEPSEEK_BASE_URL=https://api.deepseek.com/v1  # includi /v1
+    export DEEPSEEK_EMBEDDING_MODEL=deepseek-embedding  # modello embedding DeepSeek
     export OPENAI_BASE_URL=https://api.openai.com/v1   # personalizza se usi endpoint compatibili
+    export OPENAI_EMBEDDING_MODEL=text-embedding-3-small  # modello embedding OpenAI
     ```
 
    Per controllare la connettività con DeepSeek è disponibile un endpoint di debug:

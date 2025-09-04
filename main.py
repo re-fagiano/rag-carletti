@@ -76,11 +76,15 @@ if OPENAI_API_KEY:
 
 # Consente di sovrascrivere l'endpoint OpenAI, utile per ambienti personalizzati.
 OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 if DEEPSEEK_API_KEY:
     DEEPSEEK_API_KEY = re.sub(r"\s+", "", DEEPSEEK_API_KEY or "")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+DEEPSEEK_EMBEDDING_MODEL = os.getenv(
+    "DEEPSEEK_EMBEDDING_MODEL", "deepseek-embedding"
+)
 DEEPSEEK_TIMEOUT = float(os.getenv("DEEPSEEK_TIMEOUT", "10"))
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
 ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
@@ -128,11 +132,13 @@ try:
         embeddings = OpenAIEmbeddings(
             openai_api_key=OPENAI_API_KEY,
             base_url=OPENAI_BASE_URL,
+            model=OPENAI_EMBEDDING_MODEL,
         )
     else:  # deepseek
         embeddings = OpenAIEmbeddings(
             openai_api_key=DEEPSEEK_API_KEY,
             base_url=DEEPSEEK_BASE_URL,
+            model=DEEPSEEK_EMBEDDING_MODEL,
             default_headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
         )
     db = FAISS.load_local(

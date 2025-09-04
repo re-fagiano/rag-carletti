@@ -67,7 +67,11 @@ def main() -> None:
             raise Exception(
                 "Devi impostare la variabile d'ambiente OPENAI_API_KEY oppure usare --provider deepseek"
             )
-        embeddings = OpenAIEmbeddings(openai_api_key=api_key)
+        embeddings = OpenAIEmbeddings(
+            openai_api_key=api_key,
+            base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+            model=os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"),
+        )
     else:  # deepseek
         api_key = os.getenv("DEEPSEEK_API_KEY")
         if api_key:
@@ -80,6 +84,7 @@ def main() -> None:
         embeddings = OpenAIEmbeddings(
             openai_api_key=api_key,
             base_url=base_url,
+            model=os.getenv("DEEPSEEK_EMBEDDING_MODEL", "deepseek-embedding"),
             default_headers={"Authorization": f"Bearer {api_key}"},
         )
 
