@@ -40,8 +40,8 @@ async def root():
 
 @app.get("/debug/ping-deepseek")
 async def debug_ping_deepseek():
-    """Ping di debug verso l'endpoint DeepSeek /v1/models."""
-    ping_url = f"{DEEPSEEK_BASE_URL.rstrip('/')}/v1/models"
+    """Ping di debug verso l'endpoint DeepSeek /models."""
+    ping_url = f"{DEEPSEEK_BASE_URL.rstrip('/')}/models"
     if not DEEPSEEK_API_KEY:
         return JSONResponse(
             {"error": "DEEPSEEK_API_KEY non configurata"}, status_code=500
@@ -74,10 +74,13 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if OPENAI_API_KEY:
     OPENAI_API_KEY = re.sub(r"\s+", "", OPENAI_API_KEY or "")
 
+# Consente di sovrascrivere l'endpoint OpenAI, utile per ambienti personalizzati.
+OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 if DEEPSEEK_API_KEY:
     DEEPSEEK_API_KEY = re.sub(r"\s+", "", DEEPSEEK_API_KEY or "")
-DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
 DEEPSEEK_TIMEOUT = float(os.getenv("DEEPSEEK_TIMEOUT", "10"))
 BING_SEARCH_API_KEY = os.getenv("BING_SEARCH_API_KEY")
 ENABLE_IMAGE_SEARCH = os.getenv("ENABLE_IMAGE_SEARCH", "true").lower() == "true"
@@ -114,15 +117,18 @@ BASE_INSTRUCTION = (
 
 try:
     if LLM_PROVIDER == "openai":
-        ping_url = "https://api.openai.com/v1/models"
+        ping_url = f"{OPENAI_BASE_URL.rstrip('/')}/models"
         headers = {"Authorization": f"Bearer {OPENAI_API_KEY}"}
     else:  # deepseek
-        ping_url = f"{DEEPSEEK_BASE_URL.rstrip('/')}/v1/models"
+        ping_url = f"{DEEPSEEK_BASE_URL.rstrip('/')}/models"
         headers = {"Authorization": f"Bearer {DEEPSEEK_API_KEY}"}
     requests.get(ping_url, headers=headers, timeout=DEEPSEEK_TIMEOUT).raise_for_status()
 
     if LLM_PROVIDER == "openai":
-        embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+        embeddings = OpenAIEmbeddings(
+            openai_api_key=OPENAI_API_KEY,
+            base_url=OPENAI_BASE_URL,
+        )
     else:  # deepseek
         embeddings = OpenAIEmbeddings(
             openai_api_key=DEEPSEEK_API_KEY,
@@ -140,6 +146,7 @@ try:
             model_name=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
             temperature=0,
             openai_api_key=OPENAI_API_KEY,
+            base_url=OPENAI_BASE_URL,
         )
     else:  # deepseek
         llm = ChatDeepSeek(
@@ -579,7 +586,7 @@ async def health():
 async def debug_ping():
     try:
         r = requests.get(
-            f"{DEEPSEEK_BASE_URL.rstrip('/')}/v1/models",
+            f"{DEEPSEEK_BASE_URL.rstrip('/')}/models",
             headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}"},
             timeout=5,
         )

@@ -35,6 +35,7 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
 2. **Variabili d'ambiente**
    È possibile scegliere il provider del modello tramite `LLM_PROVIDER` (`deepseek` predefinito oppure `openai`).
    Se `OPENAI_API_KEY` è presente e `DEEPSEEK_API_KEY` assente, il provider viene impostato automaticamente su `openai`.
+   Per endpoint compatibili (es. proxy OpenAI), specifica `OPENAI_BASE_URL` includendo il suffisso `/v1`.
    Imposta la chiave API corrispondente prima di avviare l'applicazione:
    ```bash
    export DEEPSEEK_API_KEY=<chiave per DeepSeek>
@@ -46,7 +47,8 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    export OPENAI_MODEL=<modello opzionale>
     export ENABLE_IMAGE_SEARCH=true  # disabilita con false
     export DEEPSEEK_TIMEOUT=10       # timeout API DeepSeek (s)
-    export DEEPSEEK_BASE_URL=https://api.deepseek.com  # senza suffisso /v1
+    export DEEPSEEK_BASE_URL=https://api.deepseek.com/v1  # includi /v1
+    export OPENAI_BASE_URL=https://api.openai.com/v1   # personalizza se usi endpoint compatibili
     ```
 
    Per controllare la connettività con DeepSeek è disponibile un endpoint di debug:
@@ -55,7 +57,7 @@ implementate nel codice nella variabile `AGENT_PROMPTS` di `main.py`.
    curl http://localhost:8000/debug/ping-deepseek
    ```
 
-   L'API restituisce lo status HTTP e il corpo della chiamata a `/v1/models`.
+   L'API restituisce lo status HTTP e il corpo della chiamata a `/models`.
 
 3. **Avvio dell'applicazione**
    ```bash

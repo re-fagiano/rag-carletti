@@ -72,7 +72,7 @@ def main() -> None:
         api_key = os.getenv("DEEPSEEK_API_KEY")
         if api_key:
             api_key = re.sub(r"\s+", "", api_key or "")
-        base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+        base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
         if not api_key:
             raise Exception(
                 "Devi impostare la variabile d'ambiente DEEPSEEK_API_KEY per usare --provider deepseek"
