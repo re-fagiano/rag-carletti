@@ -298,6 +298,9 @@
           msg.textContent = sanitized;
         } else {
           msg.innerHTML = sanitized;
+          if (msg.querySelector('.ipotesi-lista')) {
+            msg.classList.add('has-hypotheses');
+          }
           if (!options.skipFeedback && options.agentId) {
             msg.appendChild(createFeedbackForm(options.agentId));
           }
