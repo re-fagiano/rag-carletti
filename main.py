@@ -5,6 +5,7 @@ import re
 import asyncio
 import requests
 import openai
+from html import escape
 from types import MappingProxyType
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Request
@@ -130,8 +131,10 @@ if not os.path.isdir(VECTORDB_PATH):
 BASE_INSTRUCTION = (
     "Rispondi sempre in modo chiaro, tecnico, e senza ironia. "
     "Non aggiungere battute, frasi umoristiche o riferimenti surreali. Concentrati solo sulla risoluzione del problema. "
+    "Apri ogni risposta con almeno tre ipotesi numerate seguendo il formato esatto \"1) Probabilità: 70-80% – Ipotesi: descrizione sintetica\" usando intervalli percentuali realistici. "
+    "Mantieni rigorosamente questo formato numerato con le probabilità in tutte le interazioni successive della conversazione. "
     "Se rilevi termini tecnici, aggiungi note a piè di pagina numerate con spiegazioni sintetiche. Se opportuno, includi un'immagine rilevante tramite Bing. "
-    "Termina ogni risposta con una domanda mirata per approfondire la richiesta dell'utente."
+    "Dopo l'elenco puoi fornire ulteriori dettagli e termina sempre con una domanda mirata per approfondire la richiesta dell'utente."
 )
 
 if not INIT_ERROR:
@@ -241,6 +244,14 @@ TOOLTIPS = {
     "guarnizione oblò": "Anello di gomma che assicura la tenuta dello sportello.",
 }
 
+HYPOTHESIS_LINE_RE = re.compile(
+    r"^\s*(?:\d+)[\).\s-]*(?:Probabilit[aà]\s*:\s*)?"
+    r"(?P<prob>[0-9]{1,3}\s*[-–]\s*[0-9]{1,3}\s*%?)"
+    r"\s*(?:[–-]|-)\s*(?:Ipotesi\s*:?)?\s*(?P<desc>.+)$",
+    re.IGNORECASE,
+)
+PROBABILITY_RANGE_RE = re.compile(r"([0-9]{1,3}\s*[-–]\s*[0-9]{1,3}\s*%?)")
+
 # Elenco degli agenti disponibili nel progetto
 AGENTS = [
     {
@@ -315,6 +326,7 @@ _AGENT_PROMPTS_DICT = {
         "Guida l'utente attraverso un processo strutturato di diagnosi e risoluzione problemi, "
         "ponendo domande mirate e offrendo spiegazioni tecniche chiare e concise. "
         "Cerca attivamente il contesto necessario per una diagnosi efficace. "
+        "Apri le risposte elencando le ipotesi diagnostiche con i range di probabilità richiesti nel formato indicato. "
         "Non fare riferimento a passaggi o istruzioni precedenti se non li hai già forniti nella conversazione: quando servono, elencali esplicitamente. "
         + BASE_INSTRUCTION
     ),
@@ -323,6 +335,7 @@ _AGENT_PROMPTS_DICT = {
         "Inizia ogni risposta con 'Yomo, la tua amica esperta in prodotti per la cura degli elettrodomestici.' "
         "Suggerisci con tono amichevole i prodotti migliori per la pulizia, manutenzione e ottimizzazione "
         "degli elettrodomestici. Offri soluzioni pratiche e performanti, adattate alle esigenze quotidiane del cliente. "
+        "Introduci sempre l'elenco numerato di ipotesi con relative probabilità nel formato stabilito prima di altri consigli. "
         + BASE_INSTRUCTION
     ),
     3: (
@@ -330,6 +343,7 @@ _AGENT_PROMPTS_DICT = {
         "Inizia ogni risposta con 'Jenna, l'assistente per utilizzare al meglio i tuoi elettrodomestici.' "
         "Suggerisci trucchi, strategie e curiosità utili per ottimizzare l'uso degli elettrodomestici. "
         "Offri consigli pratici per migliorare i risultati, mantenendo un tono leggero, positivo e informativo. "
+        "Apri ogni messaggio con le ipotesi numerate e le percentuali nel formato coerente richiesto. "
         + BASE_INSTRUCTION
     ),
     4: (
@@ -338,12 +352,14 @@ _AGENT_PROMPTS_DICT = {
         "Agisci come un commesso esperto, facendo domande per comprendere le esigenze dell'utente e "
         "fornendo informazioni dettagliate su dimensioni, classi energetiche e performance. "
         "Proponi gli elettrodomestici più adatti alle specifiche necessità del cliente. "
+        "Ricorda di presentare per prime le ipotesi con i range percentuali seguendo il formato dichiarato. "
         + BASE_INSTRUCTION
     ),
     5: (
         "Sei il Manutentore interno, addetto al debug e alla gestione delle problematiche. "
         "Inizia ogni risposta con 'Manutentore interno'. "
         "Fornisci indicazioni puntuali per la risoluzione problemi e il debug. "
+        "Fornisci sempre l'elenco numerato di ipotesi con le probabilità stimate prima di qualsiasi altra informazione. "
         + BASE_INSTRUCTION
     ),
 }
@@ -431,6 +447,108 @@ def applica_tooltip(testo: str) -> str:
         testo += "<hr /><ol class=\"footnotes\">" + "".join(footnotes) + "</ol>"
 
     return testo
+
+
+def _normalize_probability_range(probability: str) -> str:
+    cleaned = probability.replace(" ", "").replace("–", "-")
+    if not cleaned.endswith("%"):
+        cleaned += "%"
+    return cleaned
+
+
+def costruisci_html_risposta_con_ipotesi(answer: str) -> str:
+    """Riorganizza la risposta del modello in un elenco HTML di ipotesi con probabilità."""
+
+    lines = answer.splitlines()
+    hypotheses: list[tuple[str, str]] = []
+    matched_indices: set[int] = set()
+
+    for idx, raw_line in enumerate(lines):
+        stripped = raw_line.strip()
+        if not stripped:
+            continue
+        match = HYPOTHESIS_LINE_RE.match(stripped)
+        if not match:
+            continue
+        probability = _normalize_probability_range(match.group("prob"))
+        description = match.group("desc").strip()
+        if not description:
+            continue
+        hypotheses.append((probability, description))
+        matched_indices.add(idx)
+
+    if len(hypotheses) < 2:
+        for idx, raw_line in enumerate(lines):
+            if idx in matched_indices:
+                continue
+            stripped = raw_line.strip()
+            if not stripped:
+                continue
+            lower = stripped.lower()
+            if "probabilit" not in lower:
+                continue
+            probability_match = PROBABILITY_RANGE_RE.search(stripped)
+            if not probability_match:
+                continue
+            description_segment = stripped[probability_match.end():].strip()
+            ipotesi_pos = lower.find("ipotesi")
+            if ipotesi_pos != -1:
+                description_segment = stripped[ipotesi_pos + len("ipotesi"):].lstrip(" :–-")
+            description_segment = re.sub(
+                r"^(?:ipotesi\s*:?)",
+                "",
+                description_segment,
+                flags=re.IGNORECASE,
+            ).strip()
+            if not description_segment:
+                continue
+            hypotheses.append(
+                (
+                    _normalize_probability_range(probability_match.group(1)),
+                    description_segment,
+                )
+            )
+            matched_indices.add(idx)
+            if len(hypotheses) >= 3:
+                break
+
+    if hypotheses:
+        unique_hypotheses: list[tuple[str, str]] = []
+        seen: set[tuple[str, str]] = set()
+        for probability, description in hypotheses:
+            key = (probability, description)
+            if key in seen:
+                continue
+            seen.add(key)
+            unique_hypotheses.append((probability, description))
+        hypotheses = unique_hypotheses
+
+    list_html = ""
+    if hypotheses:
+        list_items = "".join(
+            (
+                f"<li><span class=\"probabilita\">Probabilità: {escape(probability)}</span> – "
+                f"<span class=\"ipotesi\">Ipotesi: {escape(description)}</span></li>"
+            )
+            for probability, description in hypotheses
+        )
+        list_html = f"<ol class=\"ipotesi-lista\">{list_items}</ol>"
+
+    remaining_lines = [lines[i] for i in range(len(lines)) if i not in matched_indices]
+    remaining_text = "\n".join(remaining_lines).strip()
+
+    details_html = ""
+    if remaining_text:
+        details_html = (
+            "<div class=\"approfondimenti\">"
+            + "<br>".join(escape(line) for line in remaining_text.splitlines())
+            + "</div>"
+        )
+
+    if list_html or details_html:
+        return list_html + details_html
+
+    return escape(answer).replace("\n", "<br>")
 
 
 async def cerca_immagine_bing(query: str, image_requested: bool = True) -> str:
@@ -592,8 +710,8 @@ async def ask_question(payload: AskRequest, request: Request):
         memory.chat_memory.add_ai_message(answer)
 
         image_url = await image_task
-        html_answer = answer.replace("\n", "<br>")
-        html_answer = applica_tooltip(html_answer)
+        structured_html = costruisci_html_risposta_con_ipotesi(answer)
+        html_answer = applica_tooltip(structured_html)
 
         if image_url:
             html_answer += f"<br><br><img src='{image_url}' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"

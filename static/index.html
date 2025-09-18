@@ -90,6 +90,30 @@
       border-left: 4px solid var(--accent);
     }
 
+    .message.bot .ipotesi-lista {
+      margin: 0 0 0.75rem 0;
+      padding-left: 1.25rem;
+    }
+
+    .message.bot .ipotesi-lista li {
+      margin-bottom: 0.5rem;
+    }
+
+    .message.bot .probabilita {
+      font-weight: 600;
+      color: var(--accent);
+      display: inline-block;
+      min-width: 8rem;
+    }
+
+    .message.bot .approfondimenti {
+      margin-top: 0.5rem;
+    }
+
+    .message.bot.has-hypotheses {
+      border-left-width: 6px;
+    }
+
     .message.bot img {
       max-width: 100%;
       border-radius: 8px;
@@ -195,7 +219,7 @@
         const sanitized = DOMPurify.sanitize(text, {
           ALLOWED_TAGS: [
             'a', 'sup', 'img', 'b', 'strong', 'i', 'em', 'code',
-            'p', 'br', 'ul', 'ol', 'li', 'span'
+            'p', 'br', 'ul', 'ol', 'li', 'span', 'div', 'hr'
           ],
           ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'id', 'class', 'title']
         });
@@ -203,6 +227,9 @@
           msg.textContent = sanitized;
         } else {
           msg.innerHTML = sanitized;
+          if (msg.querySelector('.ipotesi-lista')) {
+            msg.classList.add('has-hypotheses');
+          }
         }
         chatContainer.appendChild(msg);
         chatContainer.scrollTop = chatContainer.scrollHeight;
