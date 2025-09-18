@@ -533,19 +533,6 @@ async def ask_question(payload: AskRequest, request: Request):
 
         logger.info(f"▶️ Ricevuta query: {user_question!r} per agente {agent_id}")
 
-        # Sintesi delle interazioni precedenti
-        if memory.buffer:
-            try:
-                summary_prompt = (
-                    "Riassumi brevemente i punti chiave delle seguenti interazioni, in italiano:\n"
-                    f"{memory.buffer}"
-                )
-                summary = await llm.apredict(summary_prompt)
-            except Exception:
-                summary = "Impossibile generare la sintesi."
-        else:
-            summary = "Nessuna interazione precedente."
-
         # Gestisce la richiesta di introduzione senza invocare la RAG
         if user_question.lower() == "introduzione":
             answer = AGENT_INTROS[agent_id]
@@ -583,14 +570,20 @@ async def ask_question(payload: AskRequest, request: Request):
                         return JSONResponse(status_code=500, content={"error": msg})
                     except Exception:
                         logger.warning("RAG fallita, uso fallback")
+                        context_section = (
+                            f"\nContesto conversazione:\n{memory.buffer}" if memory.buffer else ""
+                        )
                         fallback_prompt = (
-                            f"{AGENT_PROMPTS[agent_id]}\nSintesi: {summary}\nDomanda: {user_question}"
+                            f"{AGENT_PROMPTS[agent_id]}{context_section}\nDomanda: {user_question}"
                         )
                         answer = await llm.apredict(fallback_prompt)
                 else:
                     logger.warning("Catena RAG assente, uso fallback")
+                    context_section = (
+                        f"\nContesto conversazione:\n{memory.buffer}" if memory.buffer else ""
+                    )
                     fallback_prompt = (
-                        f"{AGENT_PROMPTS[agent_id]}\nSintesi: {summary}\nDomanda: {user_question}"
+                        f"{AGENT_PROMPTS[agent_id]}{context_section}\nDomanda: {user_question}"
                     )
                     answer = await llm.apredict(fallback_prompt)
 
@@ -601,8 +594,6 @@ async def ask_question(payload: AskRequest, request: Request):
         image_url = await image_task
         html_answer = answer.replace("\n", "<br>")
         html_answer = applica_tooltip(html_answer)
-        summary_html = applica_tooltip(summary.replace("\n", "<br>"))
-        html_answer = f"<b>Sintesi conversazione:</b> {summary_html}<br><br>{html_answer}"
 
         if image_url:
             html_answer += f"<br><br><img src='{image_url}' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"
