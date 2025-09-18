@@ -1,3 +1,4 @@
+import json
 import logging
 import traceback
 import os
@@ -5,6 +6,7 @@ import re
 import asyncio
 import requests
 import openai
+from datetime import datetime
 from types import MappingProxyType
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Request
@@ -19,7 +21,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
-from pydantic import BaseModel
+from pydantic import BaseModel, conint
 from dotenv import load_dotenv
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -62,6 +64,38 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 CONVERSATIONS: dict[str, ConversationBufferMemory] = {}
 
+FEEDBACK_FILE = os.getenv("FEEDBACK_FILE", "feedback.json")
+FEEDBACK_STORAGE: list[dict] = []
+FEEDBACK_LOCK = asyncio.Lock()
+
+
+def _load_feedback_from_disk() -> list[dict]:
+    if not os.path.exists(FEEDBACK_FILE):
+        return []
+    try:
+        with open(FEEDBACK_FILE, "r", encoding="utf-8") as feedback_file:
+            data = json.load(feedback_file)
+            if isinstance(data, list):
+                return data
+            logger.warning(
+                "Formato feedback non valido in %s: attesa lista, trovato %s",
+                FEEDBACK_FILE,
+                type(data).__name__,
+            )
+    except Exception as exc:
+        logger.warning("Impossibile caricare i feedback esistenti: %s", exc)
+    return []
+
+
+def _save_feedback_to_disk(entries: list[dict]) -> None:
+    tmp_path = f"{FEEDBACK_FILE}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as tmp_file:
+        json.dump(entries, tmp_file, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, FEEDBACK_FILE)
+
+
+FEEDBACK_STORAGE.extend(_load_feedback_from_disk())
+
 llm = None
 retriever = None
 embeddings = None
@@ -74,6 +108,13 @@ class AskRequest(BaseModel):
     agent: Optional[str] = None
     session_id: Optional[str] = "default"
     include_image: Optional[bool] = True
+
+
+class FeedbackRequest(BaseModel):
+    session_id: str
+    agent_id: int
+    rating: conint(ge=1, le=5)
+    commento: Optional[str] = None
 
 # Provider di default: DeepSeek, in linea con README e script ausiliari
 _provider_env = os.getenv("LLM_PROVIDER")
@@ -609,6 +650,48 @@ async def ask_question(payload: AskRequest, request: Request):
     finally:
         if image_task is not None and not image_task.done():
             await image_task
+
+
+@app.post("/feedback")
+async def submit_feedback(payload: FeedbackRequest):
+    session_id = payload.session_id.strip()
+    if not session_id:
+        raise HTTPException(status_code=422, detail="session_id obbligatorio")
+
+    if payload.agent_id not in AGENT_PROMPTS:
+        raise HTTPException(
+            status_code=422,
+            detail={"error": "Invalid agent", "agenti": AGENTS},
+        )
+
+    commento = (payload.commento or "").strip()
+    entry = {
+        "session_id": session_id,
+        "agent_id": payload.agent_id,
+        "rating": payload.rating,
+        "commento": commento or None,
+        "timestamp": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+    }
+
+    async with FEEDBACK_LOCK:
+        FEEDBACK_STORAGE.append(entry)
+        try:
+            await asyncio.to_thread(_save_feedback_to_disk, FEEDBACK_STORAGE)
+        except Exception as exc:
+            FEEDBACK_STORAGE.pop()
+            logger.error("Errore durante il salvataggio del feedback: %s", exc)
+            raise HTTPException(
+                status_code=500,
+                detail="Impossibile salvare il feedback in questo momento.",
+            ) from exc
+
+    logger.info(
+        "💬 Feedback registrato per sessione %s (agente %s, rating %s)",
+        session_id,
+        payload.agent_id,
+        payload.rating,
+    )
+    return {"status": "ok"}
 
 
 @app.get("/health")

@@ -97,6 +97,80 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
+    .feedback-form {
+      margin-top: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    body.dark .feedback-form {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .feedback-form strong {
+      font-size: 0.95rem;
+    }
+
+    .feedback-form .rating-options {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .feedback-form label {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    .feedback-form label span.star {
+      color: var(--accent);
+      font-size: 1rem;
+      line-height: 1;
+    }
+
+    .feedback-form textarea {
+      resize: vertical;
+      min-height: 60px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: var(--bg);
+      color: var(--fg);
+    }
+
+    .feedback-form button {
+      align-self: flex-start;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 0.4rem 0.85rem;
+      cursor: pointer;
+    }
+
+    .feedback-status {
+      font-size: 0.9rem;
+    }
+
+    .feedback-status.error {
+      color: var(--accent);
+    }
+
+    .feedback-form.disabled {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
     #input-container {
       display: flex;
       padding: 0.75rem;
@@ -183,13 +257,34 @@
       body.classList.toggle("dark");
     }
 
-      window.addEventListener('load', () => {
+    const SESSION_STORAGE_KEY = 'rtor_session_id';
+    const sessionId = (() => {
+      try {
+        const existing = localStorage.getItem(SESSION_STORAGE_KEY);
+        if (existing) {
+          return existing;
+        }
+        const generated = (window.crypto && window.crypto.randomUUID)
+          ? window.crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem(SESSION_STORAGE_KEY, generated);
+        return generated;
+      } catch (err) {
+        console.warn('Impossibile accedere a localStorage:', err);
+        if (window.crypto && window.crypto.randomUUID) {
+          return window.crypto.randomUUID();
+        }
+        return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      }
+    })();
+
+    window.addEventListener('load', () => {
       const chatContainer = document.getElementById('chat-container');
       const promptInput = document.getElementById('prompt');
       const agentSelect = document.getElementById('agent-select');
       const sendBtn = document.getElementById('send-btn');
 
-      function addMessage(text, sender) {
+      function addMessage(text, sender, options = {}) {
         const msg = document.createElement('div');
         msg.classList.add('message', sender);
         const sanitized = DOMPurify.sanitize(text, {
@@ -203,61 +298,182 @@
           msg.textContent = sanitized;
         } else {
           msg.innerHTML = sanitized;
+          if (!options.skipFeedback && options.agentId) {
+            msg.appendChild(createFeedbackForm(options.agentId));
+          }
         }
         chatContainer.appendChild(msg);
         chatContainer.scrollTop = chatContainer.scrollHeight;
       }
 
-        function inviaRichiesta(testo, mostraUtente = true) {
+      function createFeedbackForm(agentId) {
+        const form = document.createElement('form');
+        form.classList.add('feedback-form');
+        form.setAttribute('aria-label', 'Invia un feedback sulla risposta del bot');
+
+        const title = document.createElement('strong');
+        title.textContent = 'Valuta questa risposta';
+        form.appendChild(title);
+
+        const ratingWrapper = document.createElement('div');
+        ratingWrapper.classList.add('rating-options');
+        const ratingName = `rating-${Math.random().toString(36).slice(2, 10)}`;
+        for (let i = 1; i <= 5; i++) {
+          const label = document.createElement('label');
+          const input = document.createElement('input');
+          input.type = 'radio';
+          input.name = ratingName;
+          input.value = String(i);
+          const star = document.createElement('span');
+          star.classList.add('star');
+          star.setAttribute('aria-hidden', 'true');
+          star.textContent = '★'.repeat(i);
+          const text = document.createElement('span');
+          text.textContent = ` (${i})`;
+          label.appendChild(input);
+          label.appendChild(star);
+          label.appendChild(text);
+          ratingWrapper.appendChild(label);
+        }
+        form.appendChild(ratingWrapper);
+
+        const comment = document.createElement('textarea');
+        comment.name = 'commento';
+        comment.placeholder = 'Commento (opzionale)';
+        form.appendChild(comment);
+
+        const submit = document.createElement('button');
+        submit.type = 'submit';
+        submit.textContent = 'Invia feedback';
+        form.appendChild(submit);
+
+        const status = document.createElement('div');
+        status.classList.add('feedback-status');
+        status.setAttribute('aria-live', 'polite');
+        form.appendChild(status);
+
+        form.addEventListener('submit', async event => {
+          event.preventDefault();
+          status.textContent = '';
+          status.classList.remove('error');
+          const selected = form.querySelector(`input[name="${ratingName}"]:checked`);
+          if (!selected) {
+            status.textContent = 'Seleziona un punteggio da 1 a 5.';
+            status.classList.add('error');
+            return;
+          }
+
+          const payload = {
+            session_id: sessionId,
+            agent_id: agentId,
+            rating: parseInt(selected.value, 10)
+          };
+          const note = comment.value.trim();
+          if (note) {
+            payload.commento = note;
+          }
+
+          const inputs = Array.from(form.querySelectorAll('input, textarea'));
+          submit.disabled = true;
+          inputs.forEach(el => {
+            el.disabled = true;
+          });
+          status.textContent = 'Invio del feedback in corso...';
+
+          try {
+            const resp = await fetch('/feedback', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            let data = {};
+            try {
+              data = await resp.json();
+            } catch (err) {
+              data = {};
+            }
+            if (!resp.ok) {
+              const detail = data.detail || data.error || 'Errore durante il salvataggio.';
+              throw new Error(detail);
+            }
+            status.textContent = '✅ Feedback inviato, grazie!';
+            form.classList.add('disabled');
+          } catch (error) {
+            status.textContent = `❌ ${error.message}`;
+            status.classList.add('error');
+            submit.disabled = false;
+            inputs.forEach(el => {
+              el.disabled = false;
+            });
+          }
+        });
+
+        return form;
+      }
+
+      function inviaRichiesta(testo, mostraUtente = true, forcedAgentId) {
         const query = testo.trim();
         if (!query) return;
+        const agentId = forcedAgentId ?? parseInt(agentSelect.value, 10);
         if (mostraUtente) addMessage(query, 'user');
-        addMessage('<span id="loading">⏳ Sto pensando...</span>', 'bot');
+        addMessage('<span id="loading">⏳ Sto pensando...</span>', 'bot', { skipFeedback: true });
         sendBtn.disabled = true;
 
         fetch('/ask', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query, agent_id: parseInt(agentSelect.value) })
+          body: JSON.stringify({
+            query,
+            agent_id: agentId,
+            session_id: sessionId
+          })
         })
           .then(async resp => {
             const data = await resp.json();
-            document.getElementById('loading').parentElement.remove();
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl && loadingEl.parentElement) {
+              loadingEl.parentElement.remove();
+            }
             if (resp.ok && data.risposta) {
-              addMessage(data.risposta, 'bot');
+              addMessage(data.risposta, 'bot', { agentId });
             } else {
               const msg = data.error || 'Errore interno.';
-              addMessage('❌ ' + msg, 'bot');
+              addMessage('❌ ' + msg, 'bot', { agentId });
             }
             sendBtn.disabled = false;
             promptInput.focus();
           })
           .catch(err => {
             console.error(err);
-            document.getElementById('loading').parentElement.remove();
-            addMessage('❌ Errore: impossibile contattare il server.', 'bot');
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl && loadingEl.parentElement) {
+              loadingEl.parentElement.remove();
+            }
+            addMessage('❌ Errore: impossibile contattare il server.', 'bot', { agentId });
             sendBtn.disabled = false;
           });
       }
 
-        let introShown = false;
-        promptInput.focus();
+      let introShown = false;
+      promptInput.focus();
 
-        agentSelect.addEventListener('change', () => {
-          inviaRichiesta('introduzione', false);
+      agentSelect.addEventListener('change', () => {
+        const agentId = parseInt(agentSelect.value, 10);
+        inviaRichiesta('introduzione', false, agentId);
+        introShown = true;
+      });
+
+      sendBtn.addEventListener('click', () => {
+        const userText = promptInput.value.trim();
+        if (!userText) return;
+        if (!introShown) {
+          const agentId = parseInt(agentSelect.value, 10);
+          inviaRichiesta('introduzione', false, agentId);
           introShown = true;
-        });
-
-        sendBtn.addEventListener('click', () => {
-          const userText = promptInput.value.trim();
-          if (!userText) return;
-          if (!introShown) {
-            inviaRichiesta('introduzione', false);
-            introShown = true;
-          }
-          promptInput.value = '';
-          inviaRichiesta(userText, true);
-        });
+        }
+        promptInput.value = '';
+        inviaRichiesta(userText, true);
+      });
 
       promptInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') {
