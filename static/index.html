@@ -97,6 +97,75 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
+    .message.bot.has-hypotheses {
+      border-left-width: 6px;
+    }
+
+    .ipotesi-lista {
+      margin-top: 0.85rem;
+      padding: 0.85rem;
+      border-radius: 10px;
+      background: rgba(209, 0, 0, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    body.dark .ipotesi-lista {
+      background: rgba(255, 60, 60, 0.12);
+    }
+
+    .ipotesi-lista h4 {
+      margin: 0;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--accent);
+    }
+
+    .ipotesi-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .ipotesi-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+    }
+
+    .ipotesi-etichetta {
+      flex: 1;
+      padding-right: 0.5rem;
+    }
+
+    .ipotesi-percentuale {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ipotesi-bar {
+      position: relative;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(209, 0, 0, 0.18);
+      overflow: hidden;
+    }
+
+    body.dark .ipotesi-bar {
+      background: rgba(255, 60, 60, 0.24);
+    }
+
+    .ipotesi-bar-fill {
+      position: absolute;
+      inset: 0;
+      background: var(--accent);
+      border-radius: inherit;
+      transition: width 0.25s ease-in-out;
+      width: 0%;
+    }
+
     .feedback-form {
       margin-top: 0.75rem;
       display: flex;
@@ -305,22 +374,98 @@
       const agentSelect = document.getElementById('agent-select');
       const sendBtn = document.getElementById('send-btn');
 
-      function addMessage(text, sender, options = {}) {
+      function creaBloccoIpotesi(hypotheses = []) {
+        const validItems = Array.isArray(hypotheses)
+          ? hypotheses.filter(item => item && typeof item.label === 'string' && item.label.trim() !== '')
+          : [];
+        if (!validItems.length) {
+          return null;
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.classList.add('ipotesi-lista');
+        wrapper.setAttribute('role', 'group');
+        wrapper.setAttribute('aria-label', 'Ipotesi con percentuali di confidenza');
+
+        const title = document.createElement('h4');
+        title.textContent = 'Ipotesi diagnostiche';
+        wrapper.appendChild(title);
+
+        validItems.forEach(item => {
+          const label = item.label.trim();
+          let confidence = item.confidence;
+          if (typeof confidence === 'string') {
+            confidence = confidence.replace('%', '').trim();
+          }
+          let percent = Number.parseFloat(confidence);
+          if (!Number.isFinite(percent)) {
+            percent = 0;
+          }
+          percent = Math.min(100, Math.max(0, percent));
+
+          const entry = document.createElement('div');
+          entry.classList.add('ipotesi-item');
+
+          const header = document.createElement('div');
+          header.classList.add('ipotesi-header');
+
+          const labelSpan = document.createElement('span');
+          labelSpan.classList.add('ipotesi-etichetta');
+          labelSpan.textContent = label;
+
+          const percentSpan = document.createElement('span');
+          percentSpan.classList.add('ipotesi-percentuale');
+          percentSpan.textContent = `${Math.round(percent)}%`;
+
+          header.appendChild(labelSpan);
+          header.appendChild(percentSpan);
+
+          const bar = document.createElement('div');
+          bar.classList.add('ipotesi-bar');
+          bar.setAttribute('aria-hidden', 'true');
+
+          const barFill = document.createElement('div');
+          barFill.classList.add('ipotesi-bar-fill');
+          barFill.style.width = `${percent}%`;
+          bar.appendChild(barFill);
+
+          entry.appendChild(header);
+          entry.appendChild(bar);
+
+          wrapper.appendChild(entry);
+        });
+
+        return wrapper;
+      }
+
+      function addMessage(content, sender, options = {}) {
         const msg = document.createElement('div');
         msg.classList.add('message', sender);
-        const sanitized = DOMPurify.sanitize(text, {
+        let structured = null;
+        let htmlContent = '';
+        if (sender === 'bot' && content && typeof content === 'object') {
+          structured = content;
+          htmlContent = content.html ?? content.text ?? '';
+        } else {
+          htmlContent = typeof content === 'string' ? content : String(content ?? '');
+        }
+        const sanitized = DOMPurify.sanitize(htmlContent, {
           ALLOWED_TAGS: [
             'a', 'sup', 'img', 'b', 'strong', 'i', 'em', 'code',
-            'p', 'br', 'ul', 'ol', 'li', 'span'
+            'p', 'br', 'ul', 'ol', 'li', 'span', 'hr'
           ],
           ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'id', 'class', 'title']
         });
         if (sender === 'user') {
-          msg.textContent = sanitized;
+          msg.textContent = htmlContent;
         } else {
           msg.innerHTML = sanitized;
-          if (msg.querySelector('.ipotesi-lista')) {
-            msg.classList.add('has-hypotheses');
+          if (structured) {
+            const hypoBlock = creaBloccoIpotesi(structured.hypotheses);
+            if (hypoBlock) {
+              msg.appendChild(hypoBlock);
+              msg.classList.add('has-hypotheses');
+            }
           }
           if (!options.skipFeedback && options.agentId) {
             const feedbackEmoji = document.createElement('span');
@@ -482,7 +627,7 @@
             if (loadingEl && loadingEl.parentElement) {
               loadingEl.parentElement.remove();
             }
-            if (resp.ok && data.risposta) {
+            if (resp.ok && data && data.risposta) {
               addMessage(data.risposta, 'bot', { agentId });
             } else {
               const msg = data.error || 'Errore interno.';
