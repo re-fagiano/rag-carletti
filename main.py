@@ -3,14 +3,17 @@ import logging
 import os
 import re
 import asyncio
+import tempfile
 import traceback
 from html import escape
+from uuid import uuid4
+import imghdr
 import requests
 import openai
 from datetime import datetime
 from types import MappingProxyType
 from typing import Optional
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -22,7 +25,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
-from pydantic import BaseModel, conint
+from pydantic import BaseModel, ValidationError, conint
 from dotenv import load_dotenv
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -101,6 +104,66 @@ llm = None
 retriever = None
 embeddings = None
 INIT_ERROR = None
+
+
+def _coerce_bool(value, default=True) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in {"", "true", "1", "si", "sì", "yes", "on"}:
+            return True
+        if lowered in {"false", "0", "no", "off"}:
+            return False
+        return bool(lowered)
+    return default
+
+
+async def _salva_file_temporaneo(upload: UploadFile, directory: str) -> Optional[tuple[str, str]]:
+    if upload is None:
+        return None
+    filename = (upload.filename or "").strip()
+    try:
+        contenuto = await upload.read()
+    finally:
+        await upload.close()
+    if not filename or not contenuto:
+        return None
+    nome_pulito = os.path.basename(filename)
+    unique_name = f"{uuid4().hex}_{nome_pulito}"
+    destinazione = os.path.join(directory, unique_name)
+
+    def _write_file():
+        with open(destinazione, "wb") as out_file:
+            out_file.write(contenuto)
+
+    await asyncio.to_thread(_write_file)
+    return destinazione, nome_pulito
+
+
+async def _analizza_immagine(percorso: str, nome_originale: str) -> str:
+    def _read_metadata() -> str:
+        tipo = imghdr.what(percorso) or "sconosciuto"
+        size_bytes = os.path.getsize(percorso)
+        size_kb = size_bytes / 1024 if size_bytes else 0
+        dimensioni = ""
+        try:
+            from PIL import Image  # type: ignore
+
+            with Image.open(percorso) as img:
+                larghezza, altezza = img.size
+                dimensioni = f", risoluzione {larghezza}×{altezza}px"
+        except Exception:
+            dimensioni = ""
+        return (
+            f"{nome_originale}: formato {tipo}{dimensioni}, dimensione {size_kb:.1f} KB"
+        )
+
+    return await asyncio.to_thread(_read_metadata)
 
 
 class AskRequest(BaseModel):
@@ -523,26 +586,102 @@ def classify_query(question: str) -> int:
 
 
 @app.post("/ask")
-async def ask_question(payload: AskRequest, request: Request):
+async def ask_question(request: Request):
     if INIT_ERROR:
         return JSONResponse(status_code=500, content={"error": INIT_ERROR})
     image_task = None
+    temp_dir = None
     try:
-        user_question = payload.query.strip()
-        session_id = payload.session_id or "default"
+        payload_data: AskRequest
+        uploaded_files: list[UploadFile] = []
+        include_image = True
+
+        content_type = request.headers.get("content-type", "").lower()
+        if "multipart/form-data" in content_type:
+            form = await request.form()
+            raw_query = (form.get("query") or "").strip()
+            raw_session = (form.get("session_id") or "default").strip() or "default"
+            raw_agent_id = form.get("agent_id")
+            raw_agent = form.get("agent")
+            include_image = _coerce_bool(form.get("include_image"), default=True)
+
+            data: dict[str, object] = {
+                "query": raw_query,
+                "session_id": raw_session,
+                "include_image": include_image,
+            }
+            if raw_agent_id not in (None, ""):
+                try:
+                    data["agent_id"] = int(raw_agent_id)
+                except (TypeError, ValueError):
+                    data["agent_id"] = None
+            if raw_agent not in (None, ""):
+                data["agent"] = str(raw_agent)
+
+            try:
+                payload_data = AskRequest(**data)
+            except ValidationError as exc:
+                raise HTTPException(status_code=422, detail=exc.errors()) from exc
+
+            uploads: list[UploadFile] = []
+            for field_name in ("files", "file"):
+                try:
+                    candidates = form.getlist(field_name)  # type: ignore[arg-type]
+                except Exception:
+                    candidates = []
+                for candidate in candidates:
+                    if isinstance(candidate, UploadFile):
+                        uploads.append(candidate)
+            uploaded_files = uploads
+        else:
+            try:
+                json_payload = await request.json()
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Payload non valido: invia JSON o multipart/form-data.",
+                ) from exc
+            try:
+                payload_data = AskRequest(**json_payload)
+            except ValidationError as exc:
+                raise HTTPException(status_code=422, detail=exc.errors()) from exc
+            include_image = _coerce_bool(payload_data.include_image, default=True)
+
+        user_question = (payload_data.query or "").strip()
+        session_id = (payload_data.session_id or "default").strip() or "default"
+        has_attachments = bool(uploaded_files)
+        if not user_question and not has_attachments:
+            raise HTTPException(
+                status_code=422,
+                detail="Richiesta vuota: specifica una domanda o allega almeno un'immagine.",
+            )
+
         memory = CONVERSATIONS.setdefault(
             session_id, ConversationBufferMemory(return_messages=False)
         )
 
-        if not user_question:
-            raise HTTPException(
-                status_code=422, detail="Inserisci il campo 'query' nel JSON"
-            )
+        # Salvataggio temporaneo degli allegati per analisi
+        saved_files: list[tuple[str, str]] = []
+        if uploaded_files:
+            temp_dir = tempfile.TemporaryDirectory(prefix="rtor_upload_")
+            for upload in uploaded_files:
+                saved = await _salva_file_temporaneo(upload, temp_dir.name)
+                if saved:
+                    saved_files.append(saved)
 
-        # Recupera l'id dell'agente, accettando sia 'agent_id' che 'agent'
-        agent_raw = payload.agent_id or payload.agent
+        visual_analysis: list[str] = []
+        if saved_files:
+            visual_analysis = [
+                result
+                for result in await asyncio.gather(
+                    *(_analizza_immagine(path, name) for path, name in saved_files)
+                )
+                if result
+            ]
+
+        agent_raw = payload_data.agent_id or payload_data.agent
         if agent_raw is None:
-            agent_id = classify_query(user_question)
+            agent_id = classify_query(user_question or "analisi immagini")
         else:
             try:
                 candidate = int(agent_raw)
@@ -568,12 +707,33 @@ async def ask_question(payload: AskRequest, request: Request):
                         detail={"error": "Invalid agent", "agenti": AGENTS},
                     )
 
-        include_image = bool(payload.include_image)
+        bing_query = user_question or (
+            visual_analysis[0] if visual_analysis else "analisi immagine utente"
+        )
         image_task = asyncio.create_task(
-            cerca_immagine_bing(user_question, include_image)
+            cerca_immagine_bing(bing_query, include_image)
         )
 
-        logger.info(f"▶️ Ricevuta query: {user_question!r} per agente {agent_id}")
+        logger.info(
+            "▶️ Ricevuta query: %s per agente %s (allegati: %s)",
+            user_question or "[solo allegati]",
+            agent_id,
+            len(saved_files),
+        )
+
+        enriched_question = user_question
+        if visual_analysis:
+            analysis_block = "\n".join(visual_analysis)
+            if enriched_question:
+                enriched_question = (
+                    f"{enriched_question}\n\nAnalisi preliminare delle immagini caricate:\n{analysis_block}"
+                )
+            else:
+                enriched_question = (
+                    "L'utente ha inviato immagini senza testo esplicito. "
+                    "Analizza i risultati seguenti e fornisci un riscontro tecnico.\n"
+                    f"Analisi preliminare delle immagini caricate:\n{analysis_block}"
+                )
 
         # Gestisce la richiesta di introduzione senza invocare la RAG
         if user_question.lower() == "introduzione":
@@ -601,7 +761,9 @@ async def ask_question(payload: AskRequest, request: Request):
                 if rag:
                     try:
                         question_with_context = (
-                            f"{memory.buffer}\nUtente: {user_question}" if memory.buffer else user_question
+                            f"{memory.buffer}\nUtente: {enriched_question}"
+                            if memory.buffer
+                            else enriched_question
                         )
                         answer = await rag.arun(question_with_context)
                     except AssertionError:
@@ -616,7 +778,7 @@ async def ask_question(payload: AskRequest, request: Request):
                             f"\nContesto conversazione:\n{memory.buffer}" if memory.buffer else ""
                         )
                         fallback_prompt = (
-                            f"{AGENT_PROMPTS[agent_id]}{context_section}\nDomanda: {user_question}"
+                            f"{AGENT_PROMPTS[agent_id]}{context_section}\nDomanda: {enriched_question}"
                         )
                         answer = await llm.apredict(fallback_prompt)
                 else:
@@ -625,12 +787,12 @@ async def ask_question(payload: AskRequest, request: Request):
                         f"\nContesto conversazione:\n{memory.buffer}" if memory.buffer else ""
                     )
                     fallback_prompt = (
-                        f"{AGENT_PROMPTS[agent_id]}{context_section}\nDomanda: {user_question}"
+                        f"{AGENT_PROMPTS[agent_id]}{context_section}\nDomanda: {enriched_question}"
                     )
                     answer = await llm.apredict(fallback_prompt)
 
         # Aggiorna la memoria con l'interazione corrente
-        memory.chat_memory.add_user_message(user_question)
+        memory.chat_memory.add_user_message(enriched_question)
         memory.chat_memory.add_ai_message(answer)
 
         image_url = await image_task
@@ -638,7 +800,17 @@ async def ask_question(payload: AskRequest, request: Request):
         html_answer = applica_tooltip(html_answer)
 
         if image_url:
-            html_answer += f"<br><br><img src='{image_url}' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"
+            html_answer += (
+                "<br><br><img src='"
+                f"{image_url}"
+                "' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"
+            )
+
+        if visual_analysis:
+            html_answer += "<br><br><strong>Risultati analisi immagini caricate:</strong><ul>"
+            for entry in visual_analysis:
+                html_answer += f"<li>{escape(entry)}</li>"
+            html_answer += "</ul>"
 
         return {"risposta": html_answer}
 
@@ -651,6 +823,8 @@ async def ask_question(payload: AskRequest, request: Request):
     finally:
         if image_task is not None and not image_task.done():
             await image_task
+        if temp_dir is not None:
+            temp_dir.cleanup()
 
 
 @app.post("/feedback")
