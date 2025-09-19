@@ -525,12 +525,12 @@ def classify_query(question: str) -> int:
 HYPOTHESIS_EXTRACTION_PROMPT = """
 Analizza la domanda e la risposta fornite.
 Restituisci esclusivamente un JSON valido con questa struttura:
-{
+{{
   "spiegazione": "riassunto tecnico della risposta in italiano",
   "hypotheses": [
-    {"label": "descrizione sintetica dell'ipotesi", "confidence": percentuale intera tra 0 e 100}
+    {{"label": "descrizione sintetica dell'ipotesi", "confidence": percentuale intera tra 0 e 100}}
   ]
-}
+}}
 Includi al massimo tre ipotesi rilevanti. Se non hai ipotesi attendibili usa un array vuoto.
 Non aggiungere commenti, testo fuori dal JSON o blocchi di codice.
 Domanda: {question}
