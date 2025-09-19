@@ -9,7 +9,7 @@ import requests
 import openai
 from datetime import datetime
 from types import MappingProxyType
-from typing import Optional
+from typing import Any, Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -522,6 +522,85 @@ def classify_query(question: str) -> int:
     return 1  # default a Gustav
 
 
+HYPOTHESIS_EXTRACTION_PROMPT = """
+Analizza la domanda e la risposta fornite.
+Restituisci esclusivamente un JSON valido con questa struttura:
+{
+  "spiegazione": "riassunto tecnico della risposta in italiano",
+  "hypotheses": [
+    {"label": "descrizione sintetica dell'ipotesi", "confidence": percentuale intera tra 0 e 100}
+  ]
+}
+Includi al massimo tre ipotesi rilevanti. Se non hai ipotesi attendibili usa un array vuoto.
+Non aggiungere commenti, testo fuori dal JSON o blocchi di codice.
+Domanda: {question}
+Risposta: {answer}
+"""
+
+
+async def genera_ipotesi(answer: str, question: str) -> dict[str, Any]:
+    base_payload: dict[str, Any] = {"text": answer, "hypotheses": []}
+    if not answer.strip() or not question.strip() or llm is None:
+        return base_payload
+
+    prompt = HYPOTHESIS_EXTRACTION_PROMPT.format(question=question, answer=answer)
+    try:
+        raw_result = await llm.apredict(prompt)
+    except Exception as exc:  # pragma: no cover - best effort
+        logger.warning("Impossibile generare le ipotesi strutturate: %s", exc)
+        return base_payload
+
+    if not raw_result:
+        return base_payload
+
+    raw_result = raw_result.strip()
+
+    def _estrai_json(testuale: str) -> str:
+        if not testuale:
+            return ""
+        if testuale.startswith("```"):
+            # Rimuove eventuali fence Markdown
+            testuale = re.sub(r"^```[a-zA-Z]*", "", testuale)
+            testuale = testuale.rstrip("`")
+        match = re.search(r"\{.*\}", testuale, re.DOTALL)
+        return match.group(0) if match else ""
+
+    try:
+        json_candidate = _estrai_json(raw_result) or raw_result
+        parsed = json.loads(json_candidate)
+    except Exception as exc:  # pragma: no cover - best effort
+        logger.warning("Risultato ipotesi non in JSON valido: %s", exc)
+        return base_payload
+
+    spiegazione = parsed.get("spiegazione")
+    if isinstance(spiegazione, str) and spiegazione.strip():
+        base_payload["text"] = spiegazione.strip()
+
+    hypotheses_raw = parsed.get("hypotheses")
+    hypotheses: list[dict[str, Any]] = []
+    if isinstance(hypotheses_raw, list):
+        for item in hypotheses_raw:
+            if not isinstance(item, dict):
+                continue
+            label = str(item.get("label", "")).strip()
+            if not label:
+                continue
+            confidence = item.get("confidence", 0)
+            if isinstance(confidence, str):
+                confidence = confidence.strip().rstrip("%")
+            try:
+                confidence_val = float(confidence)
+            except (TypeError, ValueError):
+                confidence_val = 0.0
+            confidence_val = max(0.0, min(100.0, confidence_val))
+            hypotheses.append({"label": label, "confidence": confidence_val})
+
+    if hypotheses:
+        base_payload["hypotheses"] = hypotheses
+
+    return base_payload
+
+
 @app.post("/ask")
 async def ask_question(payload: AskRequest, request: Request):
     if INIT_ERROR:
@@ -634,13 +713,21 @@ async def ask_question(payload: AskRequest, request: Request):
         memory.chat_memory.add_ai_message(answer)
 
         image_url = await image_task
+        structured_answer = await genera_ipotesi(answer, user_question)
+
         html_answer = answer.replace("\n", "<br>")
         html_answer = applica_tooltip(html_answer)
 
         if image_url:
             html_answer += f"<br><br><img src='{image_url}' alt='immagine correlata' style='max-width:100%; border-radius:8px;'>"
 
-        return {"risposta": html_answer}
+        return {
+            "risposta": {
+                "html": html_answer,
+                "text": structured_answer.get("text", answer),
+                "hypotheses": structured_answer.get("hypotheses", []),
+            }
+        }
 
     except HTTPException:
         raise
