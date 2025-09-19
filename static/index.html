@@ -347,13 +347,13 @@
         });
         const htmlContent = sanitized;
         if (sender === 'user') {
-          const hasText = Boolean(htmlContent && htmlContent.trim());
-          if (hasText) {
-            msg.textContent = htmlContent;
-          } else if (options.attachments && options.attachments.length) {
+          msg.textContent = htmlContent;
+          if (
+            (!msg.textContent || !msg.textContent.trim()) &&
+            options.attachments &&
+            options.attachments.length
+          ) {
             msg.textContent = 'Ho inviato dei file da analizzare.';
-          } else {
-            msg.textContent = '';
           }
         } else {
           msg.innerHTML = sanitized;
