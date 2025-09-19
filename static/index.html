@@ -335,19 +335,24 @@
       function addMessage(text, sender, options = {}) {
         const msg = document.createElement('div');
         msg.classList.add('message', sender);
-        const rawContent = typeof options.htmlContent === 'string'
-          ? options.htmlContent
-          : text;
-        const sanitized = DOMPurify.sanitize(rawContent || '', {
+        const content = options.htmlContent ?? text;
+        let htmlContent = '';
+        if (typeof content === 'object' && content && 'text' in content) {
+          htmlContent = content.text ?? text ?? '';
+        } else {
+          htmlContent = typeof content === 'string'
+            ? content
+            : String(content ?? '');
+        }
+        const sanitized = DOMPurify.sanitize(htmlContent || '', {
           ALLOWED_TAGS: [
             'a', 'sup', 'img', 'b', 'strong', 'i', 'em', 'code',
             'p', 'br', 'ul', 'ol', 'li', 'span'
           ],
           ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'id', 'class', 'title']
         });
-        const htmlContent = sanitized;
         if (sender === 'user') {
-          msg.textContent = htmlContent;
+          msg.textContent = sanitized;
           if (
             (!msg.textContent || !msg.textContent.trim()) &&
             options.attachments &&
