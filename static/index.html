@@ -374,6 +374,50 @@
       const agentSelect = document.getElementById('agent-select');
       const sendBtn = document.getElementById('send-btn');
 
+      const agentOptions = Array.from(agentSelect.options).map(option => {
+        const label = option.textContent.trim();
+        const value = option.value;
+        const parsedId = (() => {
+          if (value == null) return null;
+          const normalized = value.trim();
+          if (!normalized) return null;
+          const numeric = Number(normalized);
+          return Number.isNaN(numeric) ? null : numeric;
+        })();
+        return { label, value, id: parsedId };
+      });
+
+      const agentNameToId = agentOptions.reduce((acc, option) => {
+        if (option.id != null) {
+          acc.set(option.label.toLowerCase(), option.id);
+        }
+        return acc;
+      }, new Map());
+
+      function normalizeAgentId(rawValue) {
+        if (rawValue == null) return null;
+        const numeric = (() => {
+          if (typeof rawValue === 'number') {
+            return Number.isNaN(rawValue) ? null : rawValue;
+          }
+          const strValue = String(rawValue).trim();
+          if (!strValue) return null;
+          const parsed = Number(strValue);
+          return Number.isNaN(parsed) ? null : parsed;
+        })();
+        if (numeric != null) {
+          return numeric;
+        }
+        const label = String(rawValue).trim().toLowerCase();
+        if (!label) return null;
+        return agentNameToId.get(label) ?? null;
+      }
+
+      function getSelectedAgentLabel() {
+        const currentOption = agentSelect.options[agentSelect.selectedIndex];
+        return currentOption ? currentOption.textContent.trim() : '';
+      }
+
       function creaBloccoIpotesi(hypotheses = []) {
         const validItems = Array.isArray(hypotheses)
           ? hypotheses.filter(item => item && typeof item.label === 'string' && item.label.trim() !== '')
@@ -467,7 +511,7 @@
               msg.classList.add('has-hypotheses');
             }
           }
-          if (!options.skipFeedback && options.agentId) {
+          if (!options.skipFeedback && options.agentId !== null && options.agentId !== undefined) {
             const feedbackEmoji = document.createElement('span');
             feedbackEmoji.classList.add('feedback-emoji');
             feedbackEmoji.setAttribute('aria-hidden', 'true');
@@ -483,6 +527,16 @@
         const form = document.createElement('form');
         form.classList.add('feedback-form');
         form.setAttribute('aria-label', 'Invia un feedback sulla risposta del bot');
+
+        const resolvedAgentId = normalizeAgentId(agentId);
+        if (resolvedAgentId == null) {
+          const warning = document.createElement('div');
+          warning.classList.add('feedback-status', 'error');
+          warning.setAttribute('aria-live', 'polite');
+          warning.textContent = 'Feedback non disponibile per questo agente.';
+          form.appendChild(warning);
+          return form;
+        }
 
         const title = document.createElement('strong');
         title.textContent = 'Valuta questa risposta';
@@ -545,7 +599,7 @@
 
           const payload = {
             session_id: sessionId,
-            agent_id: agentId,
+            agent_id: resolvedAgentId,
             rating: parseInt(selected.value, 10)
           };
           const note = comment.value.trim();
@@ -607,19 +661,29 @@
       function inviaRichiesta(testo, mostraUtente = true, forcedAgentId) {
         const query = testo.trim();
         if (!query) return;
-        const agentId = forcedAgentId ?? parseInt(agentSelect.value, 10);
+        const selectedLabel = getSelectedAgentLabel();
+        const normalizedForced = normalizeAgentId(forcedAgentId);
+        const normalizedSelected = normalizeAgentId(agentSelect.value);
+        const agentId = normalizedForced ?? normalizedSelected;
+        const agentIdentifier = agentId ?? (selectedLabel || agentSelect.value);
         if (mostraUtente) addMessage(query, 'user');
         addMessage('<span id="loading">⏳ Sto pensando...</span>', 'bot', { skipFeedback: true });
         sendBtn.disabled = true;
 
+        const payload = {
+          query,
+          session_id: sessionId
+        };
+        if (agentId != null) {
+          payload.agent_id = agentId;
+        } else if (selectedLabel) {
+          payload.agent = selectedLabel;
+        }
+
         fetch('/ask', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query,
-            agent_id: agentId,
-            session_id: sessionId
-          })
+          body: JSON.stringify(payload)
         })
           .then(async resp => {
             const data = await resp.json();
@@ -628,10 +692,10 @@
               loadingEl.parentElement.remove();
             }
             if (resp.ok && data && data.risposta) {
-              addMessage(data.risposta, 'bot', { agentId });
+              addMessage(data.risposta, 'bot', { agentId: agentIdentifier });
             } else {
               const msg = data.error || 'Errore interno.';
-              addMessage('❌ ' + msg, 'bot', { agentId });
+              addMessage('❌ ' + msg, 'bot', { agentId: agentIdentifier });
             }
             sendBtn.disabled = false;
             promptInput.focus();
@@ -642,7 +706,7 @@
             if (loadingEl && loadingEl.parentElement) {
               loadingEl.parentElement.remove();
             }
-            addMessage('❌ Errore: impossibile contattare il server.', 'bot', { agentId });
+            addMessage('❌ Errore: impossibile contattare il server.', 'bot', { agentId: agentIdentifier });
             sendBtn.disabled = false;
           });
       }
@@ -651,7 +715,7 @@
       promptInput.focus();
 
       agentSelect.addEventListener('change', () => {
-        const agentId = parseInt(agentSelect.value, 10);
+        const agentId = normalizeAgentId(agentSelect.value);
         inviaRichiesta('introduzione', false, agentId);
         introShown = true;
       });
@@ -660,7 +724,7 @@
         const userText = promptInput.value.trim();
         if (!userText) return;
         if (!introShown) {
-          const agentId = parseInt(agentSelect.value, 10);
+          const agentId = normalizeAgentId(agentSelect.value);
           inviaRichiesta('introduzione', false, agentId);
           introShown = true;
         }
