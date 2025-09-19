@@ -12,7 +12,7 @@ import requests
 import openai
 from datetime import datetime
 from types import MappingProxyType
-from typing import Optional
+from typing import Any, Optional
 from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -605,7 +605,7 @@ async def ask_question(request: Request):
             raw_agent = form.get("agent")
             include_image = _coerce_bool(form.get("include_image"), default=True)
 
-            data: dict[str, object] = {
+            data: dict[str, Any] = {
                 "query": raw_query,
                 "session_id": raw_session,
                 "include_image": include_image,
@@ -635,7 +635,7 @@ async def ask_question(request: Request):
             uploaded_files = uploads
         else:
             try:
-                json_payload = await request.json()
+                json_payload: dict[str, Any] = await request.json()
             except Exception as exc:
                 raise HTTPException(
                     status_code=422,

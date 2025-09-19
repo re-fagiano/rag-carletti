@@ -342,9 +342,11 @@
           ],
           ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'id', 'class', 'title']
         });
+        const htmlContent = sanitized;
         if (sender === 'user') {
-          if (sanitized) {
-            msg.textContent = sanitized;
+          const hasText = Boolean(htmlContent && htmlContent.trim());
+          if (hasText) {
+            msg.textContent = htmlContent;
           } else if (options.attachments && options.attachments.length) {
             msg.textContent = 'Ho inviato dei file da analizzare.';
           } else {
