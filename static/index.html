@@ -502,6 +502,9 @@
         });
         if (sender === 'user') {
           msg.textContent = htmlContent;
+          if (!msg.textContent.trim() && options.attachments?.length) {
+            msg.textContent = '📎 File allegato inviato.';
+          }
         } else {
           msg.innerHTML = sanitized;
           if (structured) {
