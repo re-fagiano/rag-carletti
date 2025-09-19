@@ -335,7 +335,10 @@
       function addMessage(text, sender, options = {}) {
         const msg = document.createElement('div');
         msg.classList.add('message', sender);
-        const sanitized = DOMPurify.sanitize(text, {
+        const rawContent = typeof options.htmlContent === 'string'
+          ? options.htmlContent
+          : text;
+        const sanitized = DOMPurify.sanitize(rawContent || '', {
           ALLOWED_TAGS: [
             'a', 'sup', 'img', 'b', 'strong', 'i', 'em', 'code',
             'p', 'br', 'ul', 'ol', 'li', 'span'
