@@ -13,7 +13,8 @@ import openai
 from datetime import datetime
 from types import MappingProxyType
 from typing import Any, Optional
-from fastapi import FastAPI, HTTPException, Request, UploadFile
+from fastapi import FastAPI, HTTPException, Request
+from fastapi import UploadFile
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 

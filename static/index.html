@@ -527,19 +527,35 @@
         addMessage('<span id="loading">⏳ Sto pensando...</span>', 'bot', { skipFeedback: true });
         sendBtn.disabled = true;
 
-        const formData = new FormData();
-        formData.append('query', query);
-        formData.append('agent_id', agentId);
-        formData.append('session_id', sessionId);
-        formData.append('include_image', 'true');
-        files.forEach(file => {
-          formData.append('files', file);
-        });
+        const basePayload = {
+          query,
+          agent_id: agentId,
+          session_id: sessionId
+        };
 
-        fetch('/ask', {
-          method: 'POST',
-          body: formData
-        })
+        let fetchOptions;
+        if (files.length > 0) {
+          const formData = new FormData();
+          Object.entries(basePayload).forEach(([key, value]) => {
+            formData.append(key, value);
+          });
+          formData.append('include_image', 'true');
+          files.forEach(file => {
+            formData.append('files', file);
+          });
+          fetchOptions = {
+            method: 'POST',
+            body: formData
+          };
+        } else {
+          fetchOptions = {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(basePayload)
+          };
+        }
+
+        fetch('/ask', fetchOptions)
           .then(async resp => {
             const data = await resp.json();
             const loadingEl = document.getElementById('loading');
@@ -564,10 +580,10 @@
             addMessage('❌ Errore: impossibile contattare il server.', 'bot', { agentId });
             sendBtn.disabled = false;
           });
-      }
+    }
 
-      let introShown = false;
-      promptInput.focus();
+    let introShown = false;
+    promptInput.focus();
 
       agentSelect.addEventListener('change', () => {
         const agentId = parseInt(agentSelect.value, 10);
