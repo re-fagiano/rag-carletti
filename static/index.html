@@ -198,6 +198,8 @@
       background: var(--bot-bg);
       border-top: 1px solid #ccc;
       gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
     }
 
     #prompt {
@@ -208,6 +210,19 @@
       border-radius: 8px;
       background-color: var(--bg);
       color: var(--fg);
+    }
+
+    #image-upload {
+      padding: 0.6rem 0.5rem;
+      font-size: 0.95rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background-color: var(--bg);
+      color: var(--fg);
+    }
+
+    body.dark #image-upload {
+      border-color: #555;
     }
 
     #agent-select {
@@ -227,6 +242,16 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
+    }
+
+    .attachments-list {
+      margin: 0.75rem 0 0;
+      padding-left: 1.25rem;
+      font-size: 0.9rem;
+    }
+
+    .attachments-list li {
+      margin-bottom: 0.25rem;
     }
 
     .footnotes {
@@ -262,6 +287,7 @@
 
   <div id="input-container">
     <input type="text" id="prompt" placeholder="Scrivi qui la tua domanda..." />
+    <input type="file" id="image-upload" accept="image/*" multiple />
     <select id="agent-select">
       <option value="1">Gustav</option>
       <option value="2">Yomo</option>
@@ -303,6 +329,7 @@
       const chatContainer = document.getElementById('chat-container');
       const promptInput = document.getElementById('prompt');
       const agentSelect = document.getElementById('agent-select');
+      const fileInput = document.getElementById('image-upload');
       const sendBtn = document.getElementById('send-btn');
 
       function addMessage(text, sender, options = {}) {
@@ -316,7 +343,13 @@
           ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'id', 'class', 'title']
         });
         if (sender === 'user') {
-          msg.textContent = sanitized;
+          if (sanitized) {
+            msg.textContent = sanitized;
+          } else if (options.attachments && options.attachments.length) {
+            msg.textContent = 'Ho inviato dei file da analizzare.';
+          } else {
+            msg.textContent = '';
+          }
         } else {
           msg.innerHTML = sanitized;
           if (msg.querySelector('.ipotesi-lista')) {
@@ -329,6 +362,19 @@
             msg.appendChild(feedbackEmoji);
             msg.appendChild(createFeedbackForm(options.agentId, feedbackEmoji));
           }
+        }
+
+        if (options.attachments && options.attachments.length) {
+          const list = document.createElement('ul');
+          list.classList.add('attachments-list');
+          options.attachments.forEach(file => {
+            const item = document.createElement('li');
+            const sizeKB = file.size ? `${(file.size / 1024).toFixed(1)} KB` : 'dimensione sconosciuta';
+            const typeLabel = file.type ? file.type : 'tipo sconosciuto';
+            item.textContent = `${file.name} · ${typeLabel} · ${sizeKB}`;
+            list.appendChild(item);
+          });
+          msg.appendChild(list);
         }
         chatContainer.appendChild(msg);
         chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -459,22 +505,35 @@
         return form;
       }
 
-      function inviaRichiesta(testo, mostraUtente = true, forcedAgentId) {
+      function inviaRichiesta(testo, mostraUtente = true, forcedAgentId, allegati = []) {
         const query = testo.trim();
-        if (!query) return;
+        const files = Array.isArray(allegati) ? allegati : [];
+        if (!query && files.length === 0) return;
         const agentId = forcedAgentId ?? parseInt(agentSelect.value, 10);
-        if (mostraUtente) addMessage(query, 'user');
+        if (mostraUtente) {
+          const displayText = query || (files.length ? 'Ho inviato dei file da analizzare.' : '');
+          const attachmentsForView = files.map(file => ({
+            name: file.name,
+            size: file.size,
+            type: file.type
+          }));
+          addMessage(displayText, 'user', { attachments: attachmentsForView });
+        }
         addMessage('<span id="loading">⏳ Sto pensando...</span>', 'bot', { skipFeedback: true });
         sendBtn.disabled = true;
 
+        const formData = new FormData();
+        formData.append('query', query);
+        formData.append('agent_id', agentId);
+        formData.append('session_id', sessionId);
+        formData.append('include_image', 'true');
+        files.forEach(file => {
+          formData.append('files', file);
+        });
+
         fetch('/ask', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query,
-            agent_id: agentId,
-            session_id: sessionId
-          })
+          body: formData
         })
           .then(async resp => {
             const data = await resp.json();
@@ -513,14 +572,16 @@
 
       sendBtn.addEventListener('click', () => {
         const userText = promptInput.value.trim();
-        if (!userText) return;
+        const files = Array.from(fileInput.files || []);
+        if (!userText && files.length === 0) return;
         if (!introShown) {
           const agentId = parseInt(agentSelect.value, 10);
           inviaRichiesta('introduzione', false, agentId);
           introShown = true;
         }
         promptInput.value = '';
-        inviaRichiesta(userText, true);
+        fileInput.value = '';
+        inviaRichiesta(userText, true, undefined, files);
       });
 
       promptInput.addEventListener('keydown', e => {
