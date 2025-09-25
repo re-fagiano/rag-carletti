@@ -331,10 +331,49 @@
       color: var(--accent);
     }
 
-    #loading {
-      font-style: italic;
+    .loading-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
       color: var(--accent);
-      margin-top: -10px;
+      margin-top: -4px;
+    }
+
+    .loading-indicator .loading-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .loading-indicator .loading-time {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .hourglass {
+      display: inline-flex;
+      font-size: 1.75rem;
+      line-height: 1;
+      animation: hourglass-flip 1.6s infinite ease-in-out;
+      transform-origin: 50% 50%;
+    }
+
+    @keyframes hourglass-flip {
+      0% {
+        transform: rotate(0deg);
+      }
+      50% {
+        transform: rotate(180deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hourglass {
+        animation: none;
+      }
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.3/dist/purify.min.js"></script>
@@ -542,6 +581,52 @@
         }
         chatContainer.appendChild(msg);
         chatContainer.scrollTop = chatContainer.scrollHeight;
+        return msg;
+      }
+
+      function createLoadingIndicator(estimatedSeconds = 12) {
+        const messageEl = addMessage(`
+          <div class="loading-indicator" role="status" aria-live="polite">
+            <span class="hourglass" aria-hidden="true">⌛</span>
+            <div class="loading-copy">
+              <span class="loading-text">Sto preparando la risposta...</span>
+              <span class="loading-time">Attesa stimata: <span class="loading-countdown">${estimatedSeconds}</span>s</span>
+            </div>
+          </div>
+        `, 'bot', { skipFeedback: true });
+
+        const countdownEl = messageEl?.querySelector('.loading-countdown');
+        let remaining = estimatedSeconds;
+        let intervalId = null;
+
+        if (countdownEl) {
+          countdownEl.textContent = remaining;
+          intervalId = window.setInterval(() => {
+            if (!countdownEl.isConnected) {
+              window.clearInterval(intervalId);
+              intervalId = null;
+              return;
+            }
+            remaining -= 1;
+            if (remaining > 0) {
+              countdownEl.textContent = remaining;
+            } else {
+              countdownEl.textContent = '<1';
+              window.clearInterval(intervalId);
+              intervalId = null;
+            }
+          }, 1000);
+        }
+
+        return () => {
+          if (intervalId != null) {
+            window.clearInterval(intervalId);
+            intervalId = null;
+          }
+          if (messageEl && messageEl.parentElement) {
+            messageEl.remove();
+          }
+        };
       }
 
       function createFeedbackForm(agentId, feedbackEmoji) {
@@ -688,7 +773,7 @@
         const agentId = normalizedForced ?? normalizedSelected;
         const agentIdentifier = agentId ?? (selectedLabel || agentSelect.value);
         if (mostraUtente) addMessage(query, 'user');
-        addMessage('<span id="loading">⏳ Sto pensando...</span>', 'bot', { skipFeedback: true });
+        const clearLoadingIndicator = createLoadingIndicator() || (() => {});
         sendBtn.disabled = true;
 
         const payload = {
@@ -708,10 +793,7 @@
         })
           .then(async resp => {
             const data = await resp.json();
-            const loadingEl = document.getElementById('loading');
-            if (loadingEl && loadingEl.parentElement) {
-              loadingEl.parentElement.remove();
-            }
+            clearLoadingIndicator();
             if (resp.ok && data && data.risposta) {
               addMessage(data.risposta, 'bot', { agentId: agentIdentifier });
             } else {
@@ -723,10 +805,7 @@
           })
           .catch(err => {
             console.error(err);
-            const loadingEl = document.getElementById('loading');
-            if (loadingEl && loadingEl.parentElement) {
-              loadingEl.parentElement.remove();
-            }
+            clearLoadingIndicator();
             addMessage('❌ Errore: impossibile contattare il server.', 'bot', { agentId: agentIdentifier });
             sendBtn.disabled = false;
           });
