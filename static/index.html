@@ -298,6 +298,24 @@
       cursor: pointer;
     }
 
+    @media (max-width: 600px) {
+      #input-container {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.4rem;
+      }
+
+      #prompt,
+      #agent-select,
+      #send-btn {
+        width: 100%;
+      }
+
+      #send-btn {
+        min-height: 44px;
+      }
+    }
+
     .footnotes {
       font-size: 0.875rem;
       margin-top: 1rem;
