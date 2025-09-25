@@ -606,6 +606,7 @@ async def ask_question(payload: AskRequest, request: Request):
     if INIT_ERROR:
         return JSONResponse(status_code=500, content={"error": INIT_ERROR})
     image_task = None
+    structured_answer_task: asyncio.Task | None = None
     try:
         user_question = payload.query.strip()
         session_id = payload.session_id or "default"
@@ -712,8 +713,40 @@ async def ask_question(payload: AskRequest, request: Request):
         memory.chat_memory.add_user_message(user_question)
         memory.chat_memory.add_ai_message(answer)
 
-        image_url = await image_task
-        structured_answer = await genera_ipotesi(answer, user_question)
+        structured_answer_task = asyncio.create_task(
+            genera_ipotesi(answer, user_question)
+        )
+
+        image_url = ""
+        structured_answer: dict[str, Any] = {"text": answer, "hypotheses": []}
+
+        if image_task is not None:
+            try:
+                image_result, structured_result = await asyncio.gather(
+                    image_task, structured_answer_task, return_exceptions=True
+                )
+            except Exception:
+                # In caso di errore inatteso, fall back sulle attese singole
+                image_result = await image_task
+                structured_result = await structured_answer_task
+            else:
+                if isinstance(image_result, Exception):
+                    logger.warning("Ricerca immagine fallita: %s", image_result)
+                    image_result = ""
+                if isinstance(structured_result, Exception):
+                    logger.warning(
+                        "Generazione ipotesi fallita: %s", structured_result
+                    )
+                    structured_result = {"text": answer, "hypotheses": []}
+
+            image_url = str(image_result or "")
+            structured_answer = (
+                structured_result
+                if isinstance(structured_result, dict)
+                else {"text": answer, "hypotheses": []}
+            )
+        else:
+            structured_answer = await structured_answer_task
 
         html_answer = answer.replace("\n", "<br>")
         html_answer = applica_tooltip(html_answer)
@@ -738,6 +771,11 @@ async def ask_question(payload: AskRequest, request: Request):
     finally:
         if image_task is not None and not image_task.done():
             await image_task
+        if (
+            structured_answer_task is not None
+            and not structured_answer_task.done()
+        ):
+            await structured_answer_task
 
 
 @app.post("/feedback")

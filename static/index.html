@@ -540,8 +540,14 @@
       }
 
       function addMessage(content, sender, options = {}) {
-        const msg = document.createElement('div');
+        const { replaceTarget = null, ...restOptions } = options;
+        const isReplacing = replaceTarget instanceof HTMLElement;
+        const msg = isReplacing ? replaceTarget : document.createElement('div');
+
+        msg.classList.remove('has-hypotheses');
+        msg.className = '';
         msg.classList.add('message', sender);
+
         let structured = null;
         let htmlContent = '';
         if (sender === 'bot' && content && typeof content === 'object') {
@@ -550,6 +556,11 @@
         } else {
           htmlContent = typeof content === 'string' ? content : String(content ?? '');
         }
+
+        if (isReplacing) {
+          msg.innerHTML = '';
+        }
+
         const sanitized = DOMPurify.sanitize(htmlContent, {
           ALLOWED_TAGS: [
             'a', 'sup', 'img', 'b', 'strong', 'i', 'em', 'code',
@@ -557,9 +568,10 @@
           ],
           ALLOWED_ATTR: ['href', 'target', 'rel', 'src', 'alt', 'id', 'class', 'title']
         });
+
         if (sender === 'user') {
           msg.textContent = htmlContent;
-          if (!msg.textContent.trim() && options.attachments?.length) {
+          if (!msg.textContent.trim() && restOptions.attachments?.length) {
             msg.textContent = '📎 File allegato inviato.';
           }
         } else {
@@ -571,15 +583,18 @@
               msg.classList.add('has-hypotheses');
             }
           }
-          if (!options.skipFeedback && options.agentId !== null && options.agentId !== undefined) {
+          if (!restOptions.skipFeedback && restOptions.agentId !== null && restOptions.agentId !== undefined) {
             const feedbackEmoji = document.createElement('span');
             feedbackEmoji.classList.add('feedback-emoji');
             feedbackEmoji.setAttribute('aria-hidden', 'true');
             msg.appendChild(feedbackEmoji);
-            msg.appendChild(createFeedbackForm(options.agentId, feedbackEmoji));
+            msg.appendChild(createFeedbackForm(restOptions.agentId, feedbackEmoji));
           }
         }
-        chatContainer.appendChild(msg);
+
+        if (!isReplacing) {
+          chatContainer.appendChild(msg);
+        }
         chatContainer.scrollTop = chatContainer.scrollHeight;
         return msg;
       }
@@ -618,13 +633,25 @@
           }, 1000);
         }
 
-        return () => {
+        function stopTimer() {
           if (intervalId != null) {
             window.clearInterval(intervalId);
             intervalId = null;
           }
-          if (messageEl && messageEl.parentElement) {
-            messageEl.remove();
+        }
+
+        return {
+          replaceWith(content, options = {}) {
+            stopTimer();
+            if (messageEl) {
+              addMessage(content, 'bot', { ...options, replaceTarget: messageEl });
+            }
+          },
+          clear() {
+            stopTimer();
+            if (messageEl && messageEl.parentElement) {
+              messageEl.remove();
+            }
           }
         };
       }
@@ -773,7 +800,7 @@
         const agentId = normalizedForced ?? normalizedSelected;
         const agentIdentifier = agentId ?? (selectedLabel || agentSelect.value);
         if (mostraUtente) addMessage(query, 'user');
-        const clearLoadingIndicator = createLoadingIndicator() || (() => {});
+        const loadingIndicator = createLoadingIndicator();
         sendBtn.disabled = true;
 
         const payload = {
@@ -792,22 +819,35 @@
           body: JSON.stringify(payload)
         })
           .then(async resp => {
-            const data = await resp.json();
-            clearLoadingIndicator();
+            let data = {};
+            try {
+              data = await resp.json();
+            } catch (parseErr) {
+              console.warn('Risposta non JSON:', parseErr);
+            }
             if (resp.ok && data && data.risposta) {
-              addMessage(data.risposta, 'bot', { agentId: agentIdentifier });
+              loadingIndicator.replaceWith(data.risposta, {
+                agentId: agentIdentifier,
+                skipFeedback: !mostraUtente
+              });
             } else {
               const msg = data.error || 'Errore interno.';
-              addMessage('❌ ' + msg, 'bot', { agentId: agentIdentifier });
+              loadingIndicator.replaceWith('❌ ' + msg, {
+                agentId: agentIdentifier,
+                skipFeedback: true
+              });
             }
-            sendBtn.disabled = false;
-            promptInput.focus();
           })
           .catch(err => {
             console.error(err);
-            clearLoadingIndicator();
-            addMessage('❌ Errore: impossibile contattare il server.', 'bot', { agentId: agentIdentifier });
+            loadingIndicator.replaceWith('❌ Errore: impossibile contattare il server.', {
+              agentId: agentIdentifier,
+              skipFeedback: true
+            });
+          })
+          .finally(() => {
             sendBtn.disabled = false;
+            promptInput.focus();
           });
       }
 
